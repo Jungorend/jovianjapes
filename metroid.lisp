@@ -49,6 +49,18 @@
      (spacing :float))
   :documentation "Draw a grid centered at (0 0 0)")
 
+(fli:define-foreign-function (%get-mouse-delta "GetMouseDelta")
+  ()
+  :result-type (:struct vector2)
+  :result-pointer return-result)
+
+(defun get-mouse-delta ()
+  (fli:with-dynamic-foreign-objects ()
+    (let ((return-result (fli:allocate-dynamic-foreign-object :type 'vector2)))
+      (%get-mouse-delta :return-result return-result)
+      (list (fli:foreign-slot-value return-result 'x)
+            (fli:foreign-slot-value return-result 'y)))))
+
 (defclass camera-3d ()
   ((position :accessor pos :initform '(10.0 10.0 10.0))
    (target :accessor target :initform '(0.0 0.0 0.0))
@@ -248,6 +260,8 @@
   (cond
     ((key-down? (key-code 'key-left)) (setf (first (target *camera*)) (- (first (target *camera*)) 0.5)))
     ((key-down? (key-code 'key-right)) (setf (first (target *camera*)) (+ (first (target *camera*)) 0.5)))
+    ((key-down? (key-code 'key-d)) (setf (nth 2 (target *camera*)) (+ (nth 2 (target *camera*)) 0.5)))
+    ((key-down? (key-code 'key-a)) (setf (nth 2 (target *camera*)) (- (nth 2 (target *camera*)) 0.5)))
     ((key-down? (key-code 'key-up)) (setf (second (target *camera*)) (+ (second (target *camera*)) 0.5)))
     ((key-down? (key-code 'key-down)) (setf (second (target *camera*)) (- (second (target *camera*)) 0.5)))))
 
@@ -259,6 +273,7 @@
   (draw-grid 40 1.0)
   (end-mode-3d)
   (set-text (format nil "Position: ~A | Target: ~A" (pos *camera*) (target *camera*)) 400 600 20 'yellow)
+  (set-text (format nil "Mouse Delta: ~A" (get-mouse-delta)) 400 700 20 'yellow)
   (draw-fps 10 10)
   (end-drawing))
 
@@ -271,4 +286,4 @@
         finally
            (close-window)))
 
-; (main)
+(main)
