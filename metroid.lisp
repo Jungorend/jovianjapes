@@ -25,6 +25,11 @@
   (fovy :float)
   (projection :int))
 
+(fli:define-foreign-function (draw-fps "DrawFPS")
+    ((pos-x :int)
+     (pos-y :int))
+  :documentation "Draw current FPS")
+
 (fli:define-foreign-function (update-camera-raylib "UpdateCamera")
     ((camera (:reference-pass (:struct camera3D)))
      (mode :int))
@@ -236,23 +241,24 @@
             (fli:foreign-slot-value color-struct 'a) (nth 3 color-values))
       (draw-text text pos-x pos-y font-size color-struct))))
 
-(defparameter *sample-string* "Here's some boring text")
-(defparameter *test-position* '(100 100))
 (defparameter *camera* (make-instance 'camera-3d))
 
 (defun gather-input ()
   (cond
-    ((key-down? (key-code 'key-left)) (setf (first (pos *camera*)) (- (first (pos *camera*)) 0.5)))
-    ((key-down? (key-code 'key-right)) (setf (first (pos *camera*)) (+ (first (pos *camera*)) 0.5)))))
+    ((key-down? (key-code 'key-left)) (setf (first (target *camera*)) (- (first (target *camera*)) 0.5)))
+    ((key-down? (key-code 'key-right)) (setf (first (target *camera*)) (+ (first (target *camera*)) 0.5)))
+    ((key-down? (key-code 'key-up)) (setf (second (target *camera*)) (+ (second (target *camera*)) 0.5)))
+    ((key-down? (key-code 'key-down)) (setf (second (target *camera*)) (- (second (target *camera*)) 0.5)))))
 
 (defun render-window ()
-  (update-camera *camera* (gethash 'camera-free +camera-modes+))
+  (update-camera *camera* (gethash 'camera-custom +camera-modes+))
   (begin-drawing)
-  (set-background-color 'lime)
+  (set-background-color 'darkpurple)
   (begin-mode-3d *camera*)
-  (draw-grid 10 1.0)
+  (draw-grid 40 1.0)
   (end-mode-3d)
-  (set-text *sample-string* (first *test-position*) (second *test-position*) 20 'yellow)
+  (set-text (format nil "Position: ~A | Target: ~A" (pos *camera*) (target *camera*)) 400 600 20 'yellow)
+  (draw-fps 10 10)
   (end-drawing))
 
 (defun main ()
@@ -264,4 +270,4 @@
         finally
            (close-window)))
 
-; (main)
+(main)
