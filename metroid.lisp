@@ -2,7 +2,8 @@
 
 (in-package #:metroid)
 
-(fli:register-module "raylib" :file-name "./lib/raylib.dll" :connection-style :immediate) ; Windows
+; (fli:register-module "raylib" :file-name "./lib/raylib.dll" :connection-style :immediate) ; Windows
+; (fli:register-module "raylib" :file-name "./lib/libraylib.so.450" :connection-style :immediate) ; Linux
 
 (fli:define-c-typedef bool (:boolean :byte))
 
@@ -270,4 +271,4 @@
         finally
            (close-window)))
 
-(main)
+; (main)
