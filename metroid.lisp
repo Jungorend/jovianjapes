@@ -2,8 +2,7 @@
 
 (in-package #:metroid)
 
-(fli:register-module "raylib"
-                     :connection-style :immediate)
+(fli:register-module "raylib" :file-name "./lib/raylib.dll" :connection-style :immediate) ; Windows
 
 (fli:define-c-typedef bool (:boolean :byte))
 
@@ -25,6 +24,76 @@
   (up vector3)
   (fovy :float)
   (projection :int))
+
+(fli:define-foreign-function (update-camera-raylib "UpdateCamera")
+    ((camera (:reference-pass (:struct camera3D)))
+     (mode :int))
+  :documentation "Update camera position for the selected mode")
+
+(fli:define-foreign-function (%begin-mode-3d "BeginMode3D")
+    ((camera (:struct camera3D)))
+  :documentation "Begin 3D mode with custom camera")
+
+(fli:define-foreign-function (end-mode-3d "EndMode3D")
+    ()
+  :documentation "Ends 3d mode and returns to default 2d orthographic mode")
+
+(fli:define-foreign-function (draw-grid "DrawGrid")
+    ((slices :int)
+     (spacing :float))
+  :documentation "Draw a grid centered at (0 0 0)")
+
+(defclass camera-3d ()
+  ((position :accessor pos :initform '(10.0 10.0 10.0))
+   (target :accessor target :initform '(0.0 0.0 0.0))
+   (up :accessor up :initform '(0.0 1.0 0.0))
+   (fovy :accessor fovy :initform 45.0)
+   (projection :accessor projection :initform 0)))
+
+(defgeneric update-camera (camera mode))
+(defmethod update-camera ((camera camera-3d) mode)
+  (fli:with-dynamic-foreign-objects ()
+    (let ((pos (fli:allocate-dynamic-foreign-object :type 'vector3))
+          (target (fli:allocate-dynamic-foreign-object :type 'vector3))
+          (up (fli:allocate-dynamic-foreign-object :type 'vector3))
+          (cam (fli:allocate-dynamic-foreign-object :type 'camera3D)))
+      (setf (fli:foreign-slot-value pos 'x) (nth 0 (pos camera))
+            (fli:foreign-slot-value pos 'y) (nth 1 (pos camera))
+            (fli:foreign-slot-value pos 'z) (nth 2 (pos camera))
+            (fli:foreign-slot-value cam 'position :copy-foreign-object nil) pos
+            (fli:foreign-slot-value target 'x) (nth 0 (target camera))
+            (fli:foreign-slot-value target 'y) (nth 1 (target camera))
+            (fli:foreign-slot-value target 'z) (nth 2 (target camera))
+            (fli:foreign-slot-value cam 'target :copy-foreign-object nil) target
+            (fli:foreign-slot-value up 'x) (nth 0 (up camera))
+            (fli:foreign-slot-value up 'y) (nth 1 (up camera))
+            (fli:foreign-slot-value up 'z) (nth 2 (up camera))
+            (fli:foreign-slot-value cam 'up :copy-foreign-object nil) up
+            (fli:foreign-slot-value cam 'fovy) (fovy camera)
+            (fli:foreign-slot-value cam 'projection) (projection camera))
+      (update-camera-raylib cam mode))))
+
+(defun begin-mode-3d (camera)
+  (fli:with-dynamic-foreign-objects ()
+    (let ((pos (fli:allocate-dynamic-foreign-object :type 'vector3))
+          (target (fli:allocate-dynamic-foreign-object :type 'vector3))
+          (up (fli:allocate-dynamic-foreign-object :type 'vector3))
+          (cam (fli:allocate-dynamic-foreign-object :type 'camera3D)))
+      (setf (fli:foreign-slot-value pos 'x) (nth 0 (pos camera))
+            (fli:foreign-slot-value pos 'y) (nth 1 (pos camera))
+            (fli:foreign-slot-value pos 'z) (nth 2 (pos camera))
+            (fli:foreign-slot-value cam 'position :copy-foreign-object nil) pos
+            (fli:foreign-slot-value target 'x) (nth 0 (target camera))
+            (fli:foreign-slot-value target 'y) (nth 1 (target camera))
+            (fli:foreign-slot-value target 'z) (nth 2 (target camera))
+            (fli:foreign-slot-value cam 'target :copy-foreign-object nil) target
+            (fli:foreign-slot-value up 'x) (nth 0 (up camera))
+            (fli:foreign-slot-value up 'y) (nth 1 (up camera))
+            (fli:foreign-slot-value up 'z) (nth 2 (up camera))
+            (fli:foreign-slot-value cam 'up :copy-foreign-object nil) up
+            (fli:foreign-slot-value cam 'fovy) (fovy camera)
+            (fli:foreign-slot-value cam 'projection) (projection camera))
+      (%begin-mode-3d cam))))
 
 (defun build-hash-table (table values)
   (loop for entry in values
@@ -57,6 +126,14 @@
       (gethash 'blank +colors+) '(0 0 0 0)
       (gethash 'magenta +colors+) '(255 0 255 255)
       (gethash 'raywhite +colors+) '(245 245 245 255))
+
+(defparameter +camera-modes+ (make-hash-table))
+(build-hash-table +camera-modes+
+                  '((camera-custom 0)
+                    (camera-free 1)
+                    (camera-orbital 2)
+                    (camera-first-person 3)
+                    (camera-third-person 4)))
 
 (defparameter +input-codes+ (make-hash-table))
 (build-hash-table +input-codes+
@@ -161,17 +238,20 @@
 
 (defparameter *sample-string* "Here's some boring text")
 (defparameter *test-position* '(100 100))
+(defparameter *camera* (make-instance 'camera-3d))
 
 (defun gather-input ()
   (cond
-    ((key-down? (key-code 'key-left)) (setf (first *test-position*) (- (first *test-position*) 10)))
-    ((key-down? (key-code 'key-right)) (setf (first *test-position*) (+ (first *test-position*) 10)))
-    ((key-down? (key-code 'key-up)) (setf (second *test-position*) (- (second *test-position*) 10)))
-    ((key-down? (key-code 'key-down)) (setf (second *test-position*) (+ (second *test-position*) 10)))))
+    ((key-down? (key-code 'key-left)) (setf (first (pos *camera*)) (- (first (pos *camera*)) 0.5)))
+    ((key-down? (key-code 'key-right)) (setf (first (pos *camera*)) (+ (first (pos *camera*)) 0.5)))))
 
 (defun render-window ()
+  (update-camera *camera* (gethash 'camera-free +camera-modes+))
   (begin-drawing)
   (set-background-color 'lime)
+  (begin-mode-3d *camera*)
+  (draw-grid 10 1.0)
+  (end-mode-3d)
   (set-text *sample-string* (first *test-position*) (second *test-position*) 20 'yellow)
   (end-drawing))
 
