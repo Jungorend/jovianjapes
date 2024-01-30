@@ -24,6 +24,43 @@
   (fovy :float)
   (projection :int))
 
+(fli:define-c-struct matrix
+  (m0 :float) (m4 :float) (m8 :float) (m12 :float)
+  (m1 :float) (m5 :float) (m9 :float) (m13 :float)
+  (m2 :float) (m6 :float) (m10 :float) (m14 :float)
+  (m3 :float) (m7 :float) (m11 :float) (m15 :float))
+
+(fli:define-foreign-function (%get-camera-matrix "GetCameraMatrix")
+    ((camera (:struct camera3D)))
+  :result-type (:struct matrix)
+  :result-pointer return-result
+  :documentation "Get Camera transform matrix (view matrix)")
+
+(defun get-camera-matrix (camera)
+  (fli:with-dynamic-foreign-objects
+      ((cam camera3D)
+       (mat matrix)
+       (pos vector3)
+       (up vector3)
+       (target vector3))
+    (setf (fli:foreign-slot-value pos 'x) (nth 0 (pos camera))
+          (fli:foreign-slot-value pos 'y) (nth 1 (pos camera))
+          (fli:foreign-slot-value pos 'z) (nth 2 (pos camera))
+          (fli:foreign-slot-value cam 'position :copy-foreign-object nil) pos
+          (fli:foreign-slot-value target 'x) (nth 0 (target camera))
+          (fli:foreign-slot-value target 'y) (nth 1 (target camera))
+          (fli:foreign-slot-value target 'z) (nth 2 (target camera))
+          (fli:foreign-slot-value cam 'target :copy-foreign-object nil) target
+          (fli:foreign-slot-value up 'x) (nth 0 (up camera))
+          (fli:foreign-slot-value up 'y) (nth 1 (up camera))
+          (fli:foreign-slot-value up 'z) (nth 2 (up camera))
+          (fli:foreign-slot-value cam 'up :copy-foreign-object nil) up
+          (fli:foreign-slot-value cam 'fovy) (fovy camera)
+          (fli:foreign-slot-value cam 'projection) (projection camera))
+    (%get-camera-matrix cam :return-result mat)
+    (loop for n in '(m0 m4 m8 m12 m1 m5 m9 m13 m2 m6 m10 m14 m3 m7 m11 m15)
+          collect (fli:foreign-slot-value mat n))))
+
 (fli:define-foreign-function (draw-fps "DrawFPS")
     ((pos-x :int)
      (pos-y :int))
@@ -47,6 +84,16 @@
      (spacing :float))
   :documentation "Draw a grid centered at (0 0 0)")
 
+(fli:define-foreign-function (get-screen-width "GetScreenWidth")
+    ()
+  :result-type :int
+  :documentation "Get current screen width")
+
+(fli:define-foreign-function (get-screen-height "GetScreenHeight")
+    ()
+  :result-type :int
+  :documentation "Get current screen height")
+
 (fli:define-foreign-function (%get-mouse-delta "GetMouseDelta")
   ()
   :result-type (:struct vector2)
@@ -58,6 +105,51 @@
       (%get-mouse-delta :return-result return-result)
       (list (fli:foreign-slot-value return-result 'x)
             (fli:foreign-slot-value return-result 'y)))))
+
+(fli:define-foreign-function (%draw-cube "DrawCube")
+    ((position (:struct vector3))
+     (width :float)
+     (height :float)
+     (length :float)
+     (color (:struct color-struct)))
+  :documentation "Draw cube")
+
+(defun draw-cube (position width height length color)
+  (fli:with-dynamic-foreign-objects
+    ((pos vector3)
+     (col color-struct))
+    (let ((color-values (gethash color +colors+)))
+        (setf (fli:foreign-slot-value pos 'x) (nth 0 position)
+            (fli:foreign-slot-value pos 'y) (nth 1 position)
+            (fli:foreign-slot-value pos 'z) (nth 2 position)
+            (fli:foreign-slot-value col 'r) (nth 0 color-values)
+            (fli:foreign-slot-value col 'g) (nth 1 color-values)
+            (fli:foreign-slot-value col 'b) (nth 2 color-values)
+            (fli:foreign-slot-value col 'a) (nth 3 color-values)))
+    (%draw-cube pos width height length col)))
+
+(fli:define-foreign-function (%draw-plane "DrawPlane")
+    ((center-pos (:struct vector3))
+     (size (:struct vector2))
+     (color (:struct color-struct)))
+  :documentation "Draw a plane XZ")
+
+(defun draw-plane (center-pos size color)
+  (fli:with-dynamic-foreign-objects
+      ((center vector3)
+       (s vector2)
+       (col color-struct))
+    (let ((color-values (gethash color +colors+)))
+      (setf (fli:foreign-slot-value center 'x) (nth 0 center-pos)
+            (fli:foreign-slot-value center 'y) (nth 1 center-pos)
+            (fli:foreign-slot-value center 'z) (nth 2 center-pos)
+            (fli:foreign-slot-value s 'x) (nth 0 size)
+            (fli:foreign-slot-value s 'y) (nth 1 size)
+            (fli:foreign-slot-value col 'r) (nth 0 color-values)
+            (fli:foreign-slot-value col 'g) (nth 1 color-values)
+            (fli:foreign-slot-value col 'b) (nth 2 color-values)
+            (fli:foreign-slot-value col 'a) (nth 3 color-values)))
+    (%draw-plane center s col)))
 
 (defclass camera-3d ()
   ((position :accessor pos :initform '(10.0 10.0 10.0))
