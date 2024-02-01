@@ -8,4 +8,5 @@
   :serial t
   :components ((:file "package")
                (:file "raylib")
+               (:file "ecs")
                (:file "metroid")))

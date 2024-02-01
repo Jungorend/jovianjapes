@@ -2,6 +2,28 @@
 
 (in-package #:metroid)
 
+(define-component 'coords)
+(defstruct coords
+  (x 0.0 :type float)
+  (y 0.0 :type float)
+  (z 0.0 :type float))
+
+(define-component 'viewable)
+(defstruct vector3
+  (x 0.0 :type float)
+  (y 0.0 :type float)
+  (z 0.0 :type float))
+(defstruct viewable
+  (target (make-vector3) :type vector3)
+  (up (make-vector3) :type vector3)
+  (fovy 45.0 :type float)
+  (projection 0 :type fixnum))
+
+(defun make-camera (&key (x 0.0) (y 0.0) (z 0.0))
+  (let ((id (make-entity)))
+    (update-component 'position id (make-coords :x x :y y :z z))
+    (update-component 'viewable id (make-viewable))))
+
 (defparameter *camera* (make-instance 'camera-3d))
 
 (defun gather-input ()
@@ -37,5 +59,3 @@
            (render-window)
         finally
            (close-window)))
-
-(main)
