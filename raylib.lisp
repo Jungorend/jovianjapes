@@ -320,6 +320,18 @@
   :documentation "Draw text (using default font)"
   :module "raylib")
 
+(fli:define-foreign-function (set-window-focused "SetWindowFocused")
+    ()
+  :documentation "Set window focused (only PLATFORM_DESKTOP)")
+
+(fli:define-foreign-function (disable-cursor "DisableCursor")
+    ()
+  :documentation "Disables cursor (lock cursor)")
+
+(fli:define-foreign-function (enable-cursor "EnableCursor")
+    ()
+  :documentation "Enables cursor (unlock cursor)")
+
 (fli:define-foreign-function (get-key-pressed "GetKeyPressed")
     ()
   :result-type :int
