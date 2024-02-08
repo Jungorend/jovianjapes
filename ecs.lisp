@@ -76,18 +76,3 @@
          (entities (apply #'get-entities-in-system (components sys))))
     (loop for entity in entities
           do (funcall (f sys) entity))))
-
-#|
-;; Testing calls
-(define-component 'position)
-(define-component 'viewable)
-(define-component 'obstacles)
-(add-entity)
-(add-entity)
-(add-entity)
-(add-entity)
-(update-component 'viewable 2 t)
-(update-component 'viewavle 4 t)
-(define-system 'display-viewable (lambda (x) (format t "~A~%" x)) 'viewable)
-(apply-system 'display-viewable)
-#|

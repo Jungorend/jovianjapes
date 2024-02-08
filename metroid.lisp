@@ -25,16 +25,30 @@
     (update-component 'viewable id (make-viewable))))
 
 (defparameter *camera* (make-instance 'camera-3d))
+(defparameter *yaw* 0.0)
+(defparameter *pitch* 0.0)
+
+(defun rotate-camera ()
+  (setf (target *camera*)
+        (list
+         (+ (first (pos *camera*)) (* (cos *yaw*) (cos *pitch*)))
+         (+ (second (pos *camera*)) (sin *pitch*))
+         (+ (nth 2 (pos *camera*)) (* (sin *yaw*) (cos *pitch*))))))
 
 (defun gather-input ()
   (cond
-    ((key-down? (key-code 'key-left)) (setf (first (target *camera*)) (- (first (target *camera*)) 0.5)))
-    ((key-down? (key-code 'key-right)) (setf (first (target *camera*)) (+ (first (target *camera*)) 0.5)))
-    ((key-down? (key-code 'key-d)) (setf (nth 2 (target *camera*)) (+ (nth 2 (target *camera*)) 0.5)))
-    ((key-down? (key-code 'key-a)) (setf (nth 2 (target *camera*)) (- (nth 2 (target *camera*)) 0.5)))
-    ((key-down? (key-code 'key-up)) (setf (second (target *camera*)) (+ (second (target *camera*)) 0.5)))
-    ((key-down? (key-code 'key-down)) (setf (second (target *camera*)) (- (second (target *camera*)) 0.5)))))
-
+    ((key-down? (key-code 'key-left)) (progn
+                                        (setf *yaw* (+ *yaw* 0.2))
+                                        (rotate-camera)))
+    ((key-down? (key-code 'key-right)) (progn
+                                         (setf *yaw* (- *yaw* 0.2))
+                                         (rotate-camera)))
+    ((key-down? (key-code 'key-up)) (progn
+                                      (setf *pitch* (+ *pitch* 0.2))
+                                      (rotate-camera)))
+    ((key-down? (key-code 'key-down)) (progn
+                                        (setf *pitch* (- *pitch* 0.2))
+                                        (rotate-camera)))))
 (defun render-window ()
   (update-camera *camera* (gethash 'camera-custom +camera-modes+))
   (begin-drawing)
