@@ -24,33 +24,22 @@
     (update-component 'position id (make-coords :x x :y y :z z))
     (update-component 'viewable id (make-viewable))))
 
+(defparameter *sensitivity-y* 0.02)
+(defparameter *sensitivity-x* 0.03)
 (defparameter *camera* (make-instance 'camera-3d))
-(defparameter *yaw* 0.0)
-(defparameter *pitch* 0.0)
-
-(defun rotate-camera ()
-  (setf (target *camera*)
-        (list
-         (+ (first (pos *camera*)) (* (cos *yaw*) (cos *pitch*)))
-         (+ (second (pos *camera*)) (sin *pitch*))
-         (+ (nth 2 (pos *camera*)) (* (sin *yaw*) (cos *pitch*))))))
 
 (defun gather-input ()
-  (cond
-    ((key-down? (key-code 'key-left)) (progn
-                                        (setf *yaw* (+ *yaw* 0.2))
-                                        (rotate-camera)))
-    ((key-down? (key-code 'key-right)) (progn
-                                         (setf *yaw* (- *yaw* 0.2))
-                                         (rotate-camera)))
-    ((key-down? (key-code 'key-up)) (progn
-                                      (setf *pitch* (+ *pitch* 0.2))
-                                      (rotate-camera)))
-    ((key-down? (key-code 'key-down)) (progn
-                                        (setf *pitch* (- *pitch* 0.2))
-                                        (rotate-camera)))))
+  (when (key-down? (key-code 'key-left))
+    (decf (yaw *camera*) *sensitivity-x*))
+  (when (key-down? (key-code 'key-right))
+    (incf (yaw *camera*) *sensitivity-x*))
+  (when (key-down? (key-code 'key-up))
+    (incf (pitch *camera*) *sensitivity-y*))
+  (when (key-down? (key-code 'key-down))
+    (decf (pitch *camera*) *sensitivity-y*)))
+
 (defun render-window ()
-  (update-camera *camera* (gethash 'camera-custom +camera-modes+))
+  ;(update-camera *camera* (gethash 'camera-custom +camera-modes+))
   (begin-drawing)
   (set-background-color 'darkpurple)
   (begin-mode-3d *camera*)
@@ -60,8 +49,8 @@
   (draw-cube '(0.0 2.5 16.0) 32.0 5.0 1.0 'gold)
   (draw-plane '(0.0 0.0 0.0) '(32.0 32.0) 'lightgray)
   (end-mode-3d)
-  (set-text (format nil "Position: ~A | Target: ~A" (pos *camera*) (target *camera*)) 400 600 20 'yellow)
-  (set-text (format nil "Mouse Delta: ~A" (get-mouse-delta)) 400 700 20 'yellow)
+  (set-text (format nil "Position: ~A" (pos *camera*)) 400 600 20 'yellow)
+  (set-text (format nil "Pitch: ~A | Yaw: ~A" (pitch *camera*) (yaw *camera*)) 400 700 20 'yellow)
   (draw-fps 10 10)
   (end-drawing))
 

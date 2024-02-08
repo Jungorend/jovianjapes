@@ -152,11 +152,12 @@
     (%draw-plane center s col)))
 
 (defclass camera-3d ()
-  ((position :accessor pos :initform '(10.0 10.0 10.0))
-   (target :accessor target :initform '(0.0 0.0 0.0))
-   (up :accessor up :initform '(0.0 1.0 0.0))
+  ((position :accessor pos :initform '(0.0 2.0 0.0))
    (fovy :accessor fovy :initform 45.0)
-   (projection :accessor projection :initform 0)))
+   (projection :accessor projection :initform 0)
+   (up :accessor up :initform '(0.0 1.0 0.0))
+   (yaw :accessor yaw :initform 0.0)
+   (pitch :accessor pitch :initform 0.0)))
 
 (defgeneric update-camera (camera mode))
 (defmethod update-camera ((camera camera-3d) mode)
@@ -169,9 +170,9 @@
             (fli:foreign-slot-value pos 'y) (nth 1 (pos camera))
             (fli:foreign-slot-value pos 'z) (nth 2 (pos camera))
             (fli:foreign-slot-value cam 'position :copy-foreign-object nil) pos
-            (fli:foreign-slot-value target 'x) (nth 0 (target camera))
-            (fli:foreign-slot-value target 'y) (nth 1 (target camera))
-            (fli:foreign-slot-value target 'z) (nth 2 (target camera))
+            (fli:foreign-slot-value target 'x) (+ (first (pos camera)) (* (cos (yaw camera)) (cos (pitch camera))))
+            (fli:foreign-slot-value target 'y) (+ (second (pos camera)) (sin (pitch camera)))
+            (fli:foreign-slot-value target 'z) (+ (nth 2 (pos camera)) (* (sin (yaw camera)) (cos (pitch camera))))
             (fli:foreign-slot-value cam 'target :copy-foreign-object nil) target
             (fli:foreign-slot-value up 'x) (nth 0 (up camera))
             (fli:foreign-slot-value up 'y) (nth 1 (up camera))
@@ -191,9 +192,9 @@
             (fli:foreign-slot-value pos 'y) (nth 1 (pos camera))
             (fli:foreign-slot-value pos 'z) (nth 2 (pos camera))
             (fli:foreign-slot-value cam 'position :copy-foreign-object nil) pos
-            (fli:foreign-slot-value target 'x) (nth 0 (target camera))
-            (fli:foreign-slot-value target 'y) (nth 1 (target camera))
-            (fli:foreign-slot-value target 'z) (nth 2 (target camera))
+            (fli:foreign-slot-value target 'x) (+ (first (pos camera)) (* (cos (yaw camera)) (cos (pitch camera))))
+            (fli:foreign-slot-value target 'y) (+ (second (pos camera)) (sin (pitch camera)))
+            (fli:foreign-slot-value target 'z) (+ (nth 2 (pos camera)) (* (sin (yaw camera)) (cos (pitch camera))))
             (fli:foreign-slot-value cam 'target :copy-foreign-object nil) target
             (fli:foreign-slot-value up 'x) (nth 0 (up camera))
             (fli:foreign-slot-value up 'y) (nth 1 (up camera))
