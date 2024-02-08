@@ -24,19 +24,18 @@
     (update-component 'position id (make-coords :x x :y y :z z))
     (update-component 'viewable id (make-viewable))))
 
-(defparameter *sensitivity-y* 0.02)
-(defparameter *sensitivity-x* 0.03)
+(defparameter *sensitivity-y* 0.005)
+(defparameter *sensitivity-x* 0.005)
 (defparameter *camera* (make-instance 'camera-3d))
 
 (defun gather-input ()
-  (when (key-down? (key-code 'key-left))
-    (decf (yaw *camera*) *sensitivity-x*))
-  (when (key-down? (key-code 'key-right))
-    (incf (yaw *camera*) *sensitivity-x*))
-  (when (key-down? (key-code 'key-up))
-    (incf (pitch *camera*) *sensitivity-y*))
-  (when (key-down? (key-code 'key-down))
-    (decf (pitch *camera*) *sensitivity-y*)))
+  (when (key-pressed? (key-code 'key-z))
+    (disable-cursor))
+  (when (key-pressed? (key-code 'key-x))
+    (enable-cursor))
+  (destructuring-bind (x y) `(,@(get-mouse-delta))
+    (incf (yaw *camera*) (* x *sensitivity-x*))
+    (incf (pitch *camera*) (* y *sensitivity-y*))))
 
 (defun render-window ()
   ;(update-camera *camera* (gethash 'camera-custom +camera-modes+))
@@ -62,3 +61,5 @@
            (render-window)
         finally
            (close-window)))
+
+(main)
