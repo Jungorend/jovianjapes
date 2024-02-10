@@ -35,7 +35,19 @@
     (enable-cursor))
   (destructuring-bind (x y) `(,@(get-mouse-delta))
     (incf (yaw *camera*) (* x *sensitivity-x*))
-    (incf (pitch *camera*) (* y *sensitivity-y*))))
+    (incf (pitch *camera*) (* y *sensitivity-y*)))
+  (bound-radians))
+
+(defun bound-radians ()
+  (let ((circle (* 2 pi)))
+    (when (< (pitch *camera*) (- pi))
+      (incf (pitch *camera*) circle))
+    (when (< (yaw *camera*) (- pi))
+      (incf (yaw *camera*) circle))
+    (when (> (pitch *camera*) circle)
+      (decf (pitch *camera*) circle))
+    (when (> (yaw *camera*) circle)
+      (decf (yaw *camera*) circle))))
 
 (defun render-window ()
   ;(update-camera *camera* (gethash 'camera-custom +camera-modes+))
@@ -62,4 +74,3 @@
         finally
            (close-window)))
 
-(main)

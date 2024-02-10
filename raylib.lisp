@@ -1,7 +1,7 @@
 (in-package #:metroid)
 
-(fli:register-module "raylib" :file-name "./lib/raylib.dll" :connection-style :immediate) ; Windows
-; (fli:register-module "raylib" :file-name "./lib/libraylib.so.450" :connection-style :immediate) ; Linux
+#+mswindows (fli:register-module "raylib" :file-name "./lib/raylib.dll" :connection-style :immediate) ; Windows
+#-mswindows (fli:register-module "raylib" :file-name "./lib/libraylib.so.450" :connection-style :immediate) ; Linux
 
 (fli:define-c-typedef bool (:boolean :byte))
 
@@ -36,7 +36,7 @@
   :result-pointer return-result
   :documentation "Get Camera transform matrix (view matrix)")
 
-(defun get-camera-matrix (camera)
+(defun get-camera-matrix (camera) ; TODO: Target replaced
   (fli:with-dynamic-foreign-objects
       ((cam camera3D)
        (mat matrix)
@@ -165,14 +165,16 @@
     (let ((pos (fli:allocate-dynamic-foreign-object :type 'vector3))
           (target (fli:allocate-dynamic-foreign-object :type 'vector3))
           (up (fli:allocate-dynamic-foreign-object :type 'vector3))
-          (cam (fli:allocate-dynamic-foreign-object :type 'camera3D)))
+          (cam (fli:allocate-dynamic-foreign-object :type 'camera3D))
+          (yaw (coerce (yaw camera) 'single-float))
+          (pitch (coerce (pitch camera) 'single-float)))
       (setf (fli:foreign-slot-value pos 'x) (nth 0 (pos camera))
             (fli:foreign-slot-value pos 'y) (nth 1 (pos camera))
             (fli:foreign-slot-value pos 'z) (nth 2 (pos camera))
             (fli:foreign-slot-value cam 'position :copy-foreign-object nil) pos
-            (fli:foreign-slot-value target 'x) (+ (first (pos camera)) (* (cos (yaw camera)) (cos (pitch camera))))
-            (fli:foreign-slot-value target 'y) (+ (second (pos camera)) (sin (pitch camera)))
-            (fli:foreign-slot-value target 'z) (+ (nth 2 (pos camera)) (* (sin (yaw camera)) (cos (pitch camera))))
+            (fli:foreign-slot-value target 'x) (+ (first (pos camera)) (* (cos yaw) (cos pitch)))
+            (fli:foreign-slot-value target 'y) (+ (second (pos camera)) (sin pitch))
+            (fli:foreign-slot-value target 'z) (+ (nth 2 (pos camera)) (* (sin yaw) (cos pitch)))
             (fli:foreign-slot-value cam 'target :copy-foreign-object nil) target
             (fli:foreign-slot-value up 'x) (nth 0 (up camera))
             (fli:foreign-slot-value up 'y) (nth 1 (up camera))
@@ -187,14 +189,16 @@
     (let ((pos (fli:allocate-dynamic-foreign-object :type 'vector3))
           (target (fli:allocate-dynamic-foreign-object :type 'vector3))
           (up (fli:allocate-dynamic-foreign-object :type 'vector3))
-          (cam (fli:allocate-dynamic-foreign-object :type 'camera3D)))
+          (cam (fli:allocate-dynamic-foreign-object :type 'camera3D))
+          (yaw (coerce (yaw camera) 'single-float))
+          (pitch (coerce (pitch camera) 'single-float)))
       (setf (fli:foreign-slot-value pos 'x) (nth 0 (pos camera))
             (fli:foreign-slot-value pos 'y) (nth 1 (pos camera))
             (fli:foreign-slot-value pos 'z) (nth 2 (pos camera))
             (fli:foreign-slot-value cam 'position :copy-foreign-object nil) pos
-            (fli:foreign-slot-value target 'x) (+ (first (pos camera)) (* (cos (yaw camera)) (cos (pitch camera))))
-            (fli:foreign-slot-value target 'y) (+ (second (pos camera)) (sin (pitch camera)))
-            (fli:foreign-slot-value target 'z) (+ (nth 2 (pos camera)) (* (sin (yaw camera)) (cos (pitch camera))))
+            (fli:foreign-slot-value target 'x) (+ (first (pos camera)) (* (cos yaw) (cos pitch)))
+            (fli:foreign-slot-value target 'y) (+ (second (pos camera)) (sin pitch))
+            (fli:foreign-slot-value target 'z) (+ (nth 2 (pos camera)) (* (sin yaw) (cos pitch)))
             (fli:foreign-slot-value cam 'target :copy-foreign-object nil) target
             (fli:foreign-slot-value up 'x) (nth 0 (up camera))
             (fli:foreign-slot-value up 'y) (nth 1 (up camera))
