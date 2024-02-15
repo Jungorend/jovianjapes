@@ -50,10 +50,46 @@
             ('west 'south)
             ('south 'east)
             (otherwise 'north))))
+  (when (key-pressed? (key-code 'key-w))
+    (setf (pos *camera*) (case (rotation *player*)
+                           ('north (list
+                                    (first (pos *camera*))
+                                    (second (pos *camera*))
+                                    (+ (nth 2 (pos *camera*)) 2.0)))
+                           ('east (list
+                                   (+ (first (pos *camera*)) 2.0)
+                                   (second (pos *camera*))
+                                   (nth 2 (pos *camera*))))
+                           ('south (list
+                                    (first (pos *camera*))
+                                    (second (pos *camera*))
+                                    (- (nth 2 (pos *camera*)) 2.0)))
+                           (otherwise (list
+                                       (- (first (pos *camera*)) 2.0)
+                                       (second (pos *camera*))
+                                       (nth 2 (pos *camera*)))))))
+  (when (key-pressed? (key-code 'key-s))
+    (setf (pos *camera*) (case (rotation *player*)
+                           ('north (list
+                                    (first (pos *camera*))
+                                    (second (pos *camera*))
+                                    (- (nth 2 (pos *camera*)) 2.0)))
+                           ('east (list
+                                   (- (first (pos *camera*)) 2.0)
+                                   (second (pos *camera*))
+                                   (nth 2 (pos *camera*))))
+                           ('south (list
+                                    (first (pos *camera*))
+                                    (second (pos *camera*))
+                                    (+ (nth 2 (pos *camera*)) 2.0)))
+                           (otherwise (list
+                                       (+ (first (pos *camera*)) 2.0)
+                                       (second (pos *camera*))
+                                       (nth 2 (pos *camera*)))))))
   (setf (yaw *camera*) (case (rotation *player*)
-                         ('north 0.0)
-                         ('east (/ pi 2))
-                         ('south pi)
+                         ('west pi)
+                         ('north (/ pi 2))
+                         ('east 0.0)
                          (otherwise (* (/ 3 2) pi)))))
 
 (defun gather-input ()
@@ -69,6 +105,8 @@
   (begin-mode-3d *camera*)
   (draw-grid 40 1.0)
   (draw-cube '(-16.0 2.5 0.0) 1.0 5.0 32.0 'blue)
+  (draw-cube '(0.0 2.5 -2.0) 10.0 5.0 1.0 'pink)
+  (draw-cube '(0.0 2.5 2.0) 10.0 5.0 1.0 'pink)
   (draw-cube '(16.0 2.5 0.0) 1.0 5.0 32.0 'lime)
   (draw-cube '(0.0 2.5 16.0) 32.0 5.0 1.0 'gold)
   (draw-plane '(0.0 0.0 0.0) '(32.0 32.0) 'lightgray)
