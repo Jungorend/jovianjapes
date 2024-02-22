@@ -23,9 +23,9 @@
    (color :accessor color :initarg :color))
   (:documentation "A 2d plane along the xz axis"))
 (defclass renderable/wall (renderable)
-  ((height :accessor height :initarg :height)
+  ((color :accessor color :initarg :color)
    (width :accessor width :initarg :width)
-   (color :accessor color :initarg :color)
+   (height :accessor height :initarg :height)
    (orientation :accessor orientation :initarg :orientation))
   (:documentation "A vertical wall that runs either 'north-south or 'east-west"))
 
@@ -42,6 +42,22 @@
                       (width render-details))
                 (color render-details))))
 
+(defmethod render ((render-details renderable/wall) id)
+  "Renders a wall via thin rectangle"
+  (let ((position (get-entity-in-component 'position id))
+        (x-length (if (eq 'north-south (orientation render-details))
+                      0.1
+                      (width render-details)))
+        (y-length (height render-details))
+        (z-length (if (eq 'north-south (orientation render-details))
+                      (width render-details)
+                      0.1)))
+    (draw-cube (list (position-x position)
+                     (position-y position)
+                     (position-z position))
+               x-length y-length z-length
+               (color render-details))))
+
 (define-system 'render-objects
   (lambda (id) (render (get-entity-in-component 'renderable id) id))
   'renderable)
@@ -50,6 +66,11 @@
   (let ((id (make-entity)))
     (update-component 'position id (make-position :x x :y y :z z))
     (update-component 'renderable id (make-instance 'renderable/plane :height height :width width :color color))))
+
+(defun make-wall (x y z height width orientation color)
+  (let ((id (make-entity)))
+    (update-component 'position id (make-position :x x :y y :z z))
+    (update-component 'renderable id (make-instance 'renderable/wall :width width :height height :orientation orientation :color color))))
 
 (define-component 'viewable)
 (defstruct viewable
@@ -143,12 +164,6 @@
   (begin-mode-3d *camera*)
   (apply-system 'render-objects)
   (draw-grid 40 1.0)
-  (draw-cube '(-16.0 2.5 0.0) 1.0 5.0 32.0 'blue)
-  (draw-cube '(0.0 2.5 -2.0) 10.0 5.0 0.1 'pink)
-  (draw-cube '(0.0 2.5 2.0) 10.0 5.0 0.1 'pink)
-  (draw-cube '(16.0 2.5 0.0) 1.0 5.0 32.0 'lime)
-  (draw-cube '(0.0 2.5 16.0) 32.0 5.0 1.0 'gold)
-  (draw-plane '(0.0 0.0 0.0) '(32.0 32.0) 'lightgray)
   (end-mode-3d)
   (set-text (format nil "Position: ~A" (pos *camera*)) 400 600 20 'yellow)
   (set-text (format nil "Rotation: ~A" (rotation *player*)) 400 650 20 'blue)
@@ -158,7 +173,9 @@
 
 ;; TODO: Need to clear existing scene data
 (defun load-test-scene ()
-  (make-plane 0.0 0.0 0.0 32.0 32.0 'lightgray))
+  (make-plane 0.0 0.0 0.0 32.0 32.0 'lightgray)
+  (make-wall 0.0 2.5 -2.0 5.0 10.0 'east-west 'pink)
+  (make-wall 0.0 2.5 2.0 5.0 10.0 'east-west 'pink))
 
 (defun main ()
   (init-window 1024 768 "Hello Metroid")
@@ -169,3 +186,5 @@
            (render-window)
         finally
            (close-window)))
+
+(main)
