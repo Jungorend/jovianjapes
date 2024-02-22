@@ -46,6 +46,11 @@
   (lambda (id) (render (get-entity-in-component 'renderable id) id))
   'renderable)
 
+(defun make-plane (x y z height width color)
+  (let ((id (make-entity)))
+    (update-component 'position id (make-position :x x :y y :z z))
+    (update-component 'renderable id (make-instance 'renderable/plane :height height :width width :color color))))
+
 (define-component 'viewable)
 (defstruct viewable
   (target (make-vector3) :type vector3)
@@ -151,12 +156,16 @@
   (draw-fps 10 10)
   (end-drawing))
 
+;; TODO: Need to clear existing scene data
+(defun load-test-scene ()
+  (make-plane 0.0 0.0 0.0 32.0 32.0 'lightgray))
+
 (defun main ()
   (init-window 1024 768 "Hello Metroid")
   (set-target-fps 60)
+  (load-test-scene)
   (loop until (window-should-close)
         do (gather-input)
            (render-window)
         finally
            (close-window)))
-
