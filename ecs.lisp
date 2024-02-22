@@ -56,6 +56,9 @@
           do (vector-push-extend nil (entities component)))
     (- length 1)))
 
+(defun get-entity-in-component (component id)
+  (aref (entities (get-component component)) id))
+
 (defun get-entities-in-system (&rest required-components)
   (let ((components (reduce (lambda (results component)
                               (let ((c (get-component component)))

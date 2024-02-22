@@ -2,17 +2,51 @@
 
 (in-package #:metroid)
 
-(define-component 'coords)
-(defstruct coords
-  (x 0.0 :type float)
-  (y 0.0 :type float)
-  (z 0.0 :type float))
-
-(define-component 'viewable)
 (defstruct vector3
   (x 0.0 :type float)
   (y 0.0 :type float)
   (z 0.0 :type float))
+
+(define-component 'position)
+(defstruct position
+  (x 0.0 :type float)
+  (y 0.0 :type float)
+  (z 0.0 :type float))
+
+(define-component 'renderable)
+
+(defclass renderable () nil
+  (:documentation "A base renderable object"))
+(defclass renderable/plane (renderable)
+  ((height :accessor height :initarg :height)
+   (width :accessor width :initarg :width)
+   (color :accessor color :initarg :color))
+  (:documentation "A 2d plane along the xz axis"))
+(defclass renderable/wall (renderable)
+  ((height :accessor height :initarg :height)
+   (width :accessor width :initarg :width)
+   (color :accessor color :initarg :color)
+   (orientation :accessor orientation :initarg :orientation))
+  (:documentation "A vertical wall that runs either 'north-south or 'east-west"))
+
+(defgeneric render (render-details id)
+  (:documentation "Renders an object to the screen. Should be called within drawing methods"))
+
+(defmethod render ((render-details renderable/plane) id)
+  "Renders a 2d plane"
+  (let ((position (get-entity-in-component 'position id)))
+    (draw-plane (list (position-x position)
+                      (position-y position)
+                      (position-z position))
+                (list (height render-details)
+                      (width render-details))
+                (color render-details))))
+
+(define-system 'render-objects
+  (lambda (id) (render (get-entity-in-component 'renderable id) id))
+  'renderable)
+
+(define-component 'viewable)
 (defstruct viewable
   (target (make-vector3) :type vector3)
   (up (make-vector3) :type vector3)
@@ -23,7 +57,6 @@
   ((x :accessor x :initform 0)
    (y :accessor y :initform 0)
    (rotation :accessor rotation :initform 'north)))
-
 
 (defun make-camera (&key (x 0.0) (y 0.0) (z 0.0))
   (let ((id (make-entity)))
@@ -103,6 +136,7 @@
   (begin-drawing)
   (set-background-color 'darkpurple)
   (begin-mode-3d *camera*)
+  (apply-system 'render-objects)
   (draw-grid 40 1.0)
   (draw-cube '(-16.0 2.5 0.0) 1.0 5.0 32.0 'blue)
   (draw-cube '(0.0 2.5 -2.0) 10.0 5.0 0.1 'pink)
