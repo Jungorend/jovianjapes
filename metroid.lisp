@@ -163,19 +163,23 @@
   (set-background-color 'darkpurple)
   (begin-mode-3d *camera*)
   (apply-system 'render-objects)
-  (draw-grid 40 1.0)
   (end-mode-3d)
-  (set-text (format nil "Position: ~A" (pos *camera*)) 400 600 20 'yellow)
-  (set-text (format nil "Rotation: ~A" (rotation *player*)) 400 650 20 'blue)
-  (set-text (format nil "Pitch: ~A | Yaw: ~A" (pitch *camera*) (yaw *camera*)) 400 700 20 'yellow)
   (draw-fps 10 10)
   (end-drawing))
 
 ;; TODO: Need to clear existing scene data
 (defun load-test-scene ()
-  (make-plane 0.0 0.0 0.0 32.0 32.0 'lightgray)
-  (make-wall 0.0 2.5 -2.0 5.0 10.0 'east-west 'pink)
-  (make-wall 0.0 2.5 2.0 5.0 10.0 'east-west 'pink))
+  (make-plane 0.0 0.0 0.0
+              32.0 32.0
+              'lightgray)
+  (make-wall 0.0 2.5 -2.0
+             5.0 10.0
+             'east-west
+             'pink)
+  (make-wall 0.0 2.5 2.0
+             5.0 10.0
+             'east-west
+             'pink))
 
 (defun main ()
   (init-window 1024 768 "Hello Metroid")
