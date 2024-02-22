@@ -160,10 +160,11 @@
 
 (defun render-window ()
   (begin-drawing)
-  (set-background-color 'darkpurple)
+  (set-background-color 'black)
   (begin-mode-3d *camera*)
   (apply-system 'render-objects)
   (end-mode-3d)
+  (set-text (format nil "Position: ~A" (pos *camera*)) 400 600 20 'yellow)
   (draw-fps 10 10)
   (end-drawing))
 
@@ -175,11 +176,11 @@
   (make-wall 0.0 2.5 -2.0
              5.0 10.0
              'east-west
-             'pink)
+             'darkgreen)
   (make-wall 0.0 2.5 2.0
              5.0 10.0
              'east-west
-             'pink))
+             'darkgreen))
 
 (defun main ()
   (init-window 1024 768 "Hello Metroid")
@@ -191,4 +192,3 @@
         finally
            (close-window)))
 
-(main)
