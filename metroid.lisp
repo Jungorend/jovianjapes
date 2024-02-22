@@ -105,8 +105,8 @@
   (begin-mode-3d *camera*)
   (draw-grid 40 1.0)
   (draw-cube '(-16.0 2.5 0.0) 1.0 5.0 32.0 'blue)
-  (draw-cube '(0.0 2.5 -2.0) 10.0 5.0 1.0 'pink)
-  (draw-cube '(0.0 2.5 2.0) 10.0 5.0 1.0 'pink)
+  (draw-cube '(0.0 2.5 -2.0) 10.0 5.0 0.1 'pink)
+  (draw-cube '(0.0 2.5 2.0) 10.0 5.0 0.1 'pink)
   (draw-cube '(16.0 2.5 0.0) 1.0 5.0 32.0 'lime)
   (draw-cube '(0.0 2.5 16.0) 32.0 5.0 1.0 'gold)
   (draw-plane '(0.0 0.0 0.0) '(32.0 32.0) 'lightgray)
@@ -126,4 +126,3 @@
         finally
            (close-window)))
 
-(main)

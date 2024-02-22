@@ -9,5 +9,5 @@
   :components ((:file "package")
                (:file "raylib")
                (:file "ecs")
-               (:file "leveleditor.lisp")
+               (:file "leveleditor")
                (:file "metroid")))
