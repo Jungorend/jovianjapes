@@ -7,8 +7,7 @@
 ;;;; (define-system) to declare a system
 ;;;; (update-component) to update details for a given component
 
-;; TODO: make it so that it checks a *free-entities* first
-;; TODO: functions to remove entities, components, and systems
+;; TODO: Right now entities are just a list of 0's
 ;; TODO: make decision whether unused systems should be removed from *systems* and therefore apply systems
 ;; just iterates through them all
 ;; This way we can recycle addresses when they are freed rather than exclusively append
@@ -24,6 +23,7 @@
    (components :accessor components :initarg :components)))
 
 (defvar *entities* (make-array 0 :adjustable t :fill-pointer 0))
+(defvar *free-entities* nil)
 (defvar *components* (make-array 0 :adjustable t :fill-pointer 0))
 (defvar *systems* (make-array 0 :adjustable t :fill-pointer 0))
 
@@ -49,12 +49,27 @@
   (let ((component (get-component component)))
     (setf (aref (entities component) id) data)))
 
+(defun remove-entity (id)
+  "Removes the Entity from the components. Checks to ensure it doesn't duplicate availability."
+  (unless (member id *free-entities*)
+    (push id *free-entities*))
+  (setf (aref *entities* id) nil)
+  (loop for component across *components*
+        do (setf (aref (entities component) id) nil))
+  id)
+
 (defun make-entity ()
-  (vector-push-extend 0 *entities*)
-  (let ((length (length *entities*)))
-    (loop for component across *components*
-          do (vector-push-extend nil (entities component)))
-    (- length 1)))
+  (if *free-entities*
+      (progn
+        (let ((id (pop *free-entities*)))
+          (setf (aref *entities* id) 0)
+          id))
+      (progn
+        (vector-push-extend 0 *entities*)
+        (let ((length (length *entities*)))
+          (loop for component across *components*
+                do (vector-push-extend nil (entities component)))
+          (- length 1)))))
 
 (defun get-entity-in-component (component id)
   (aref (entities (get-component component)) id))
