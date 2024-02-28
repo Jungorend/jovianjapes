@@ -7,8 +7,8 @@
   (y 0.0 :type float)
   (z 0.0 :type float))
 
-(define-component 'position)
-(defstruct position
+(define-component 'pos)
+(defstruct pos
   (x 0.0 :type float)
   (y 0.0 :type float)
   (z 0.0 :type float))
@@ -34,17 +34,17 @@
 
 (defmethod render ((render-details renderable/plane) id)
   "Renders a 2d plane"
-  (let ((position (get-entity-in-component 'position id)))
-    (draw-plane (list (position-x position)
-                      (position-y position)
-                      (position-z position))
+  (let ((pos (get-entity-in-component 'pos id)))
+    (draw-plane (list (pos-x pos)
+                      (pos-y pos)
+                      (pos-z pos))
                 (list (height render-details)
                       (width render-details))
                 (color render-details))))
 
 (defmethod render ((render-details renderable/wall) id)
   "Renders a wall via thin rectangle"
-  (let ((position (get-entity-in-component 'position id))
+  (let ((pos (get-entity-in-component 'pos id))
         (x-length (if (eq 'north-south (orientation render-details))
                       0.1
                       (width render-details)))
@@ -52,9 +52,9 @@
         (z-length (if (eq 'north-south (orientation render-details))
                       (width render-details)
                       0.1)))
-    (draw-cube (list (position-x position)
-                     (position-y position)
-                     (position-z position))
+    (draw-cube (list (pos-x pos)
+                     (pos-y pos)
+                     (pos-z pos))
                x-length y-length z-length
                (color render-details))))
 
@@ -64,12 +64,12 @@
 
 (defun make-plane (x y z height width color)
   (let ((id (make-entity)))
-    (update-component 'position id (make-position :x x :y y :z z))
+    (update-component 'pos id (make-pos :x x :y y :z z))
     (update-component 'renderable id (make-instance 'renderable/plane :height height :width width :color color))))
 
 (defun make-wall (x y z height width orientation color)
   (let ((id (make-entity)))
-    (update-component 'position id (make-position :x x :y y :z z))
+    (update-component 'pos id (make-pos :x x :y y :z z))
     (update-component 'renderable id (make-instance 'renderable/wall :width width :height height :orientation orientation :color color))))
 
 (define-component 'viewable)
@@ -86,7 +86,7 @@
 
 (defun make-camera (&key (x 0.0) (y 0.0) (z 0.0))
   (let ((id (make-entity)))
-    (update-component 'position id (make-coords :x x :y y :z z))
+    (update-component 'pos id (make-pos :x x :y y :z z))
     (update-component 'viewable id (make-viewable))))
 
 (defparameter *sensitivity-y* 0.005)
