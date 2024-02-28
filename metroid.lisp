@@ -185,10 +185,9 @@
 (defun main ()
   (init-window 1024 768 "Hello Metroid")
   (set-target-fps 60)
-  (load-test-scene)
+  ;(load-test-scene)
   (loop until (window-should-close)
         do (gather-input)
            (render-window)
         finally
            (close-window)))
-
