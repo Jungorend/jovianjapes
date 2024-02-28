@@ -1,17 +1,25 @@
 (in-package #:metroid)
-;;; TODO: For now just storing as a list of lists. Probably should be a map.
 
-(defvar *current-level* nil)
+(defconstant +level-path+ "levels/")
 
-(defclass cell ()
-  ((cell-type :accessor cell-type :initarg :cell-type)))
-
-(defun make-grid-cell (&optional (type 'ground))
-  (make-instance 'cell :cell-type type))
+(defvar *current-level* (make-hash-table :test #'equal))
 
 (defun get-cell (x y)
-  (second
-   (assoc (list x y) *current-level* :test #'equal)))
+  (gethash (list x y) *current-level*))
 
-(defun set-cell (x y place)
-  (push `((,x ,y) ,place) *current-level*))
+(defun set-cell (x y object)
+  (setf (gethash (list x y) *current-level*) object))
+
+(defun save-level (filename)
+  (with-open-file (s (concatenate 'string +level-path+ filename) :direction :output :if-exists :supersede :if-does-not-exist :create)
+    (maphash (lambda (loc room-type)
+               (format s "~S ~S~%" loc room-type))
+             *current-level*)))
+
+(defun load-level (filename)
+  (clrhash *current-level*)
+  (with-open-file (s (concatenate 'string +level-path+ filename))
+    (loop for loc = (read s nil)
+          for room-type = (read s nil)
+          while room-type
+          do (setf (gethash loc *current-level*) room-type))))
