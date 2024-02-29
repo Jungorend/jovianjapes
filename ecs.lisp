@@ -97,4 +97,10 @@
           do (funcall (f sys) entity))))
 
 (defun run-current-systems ()
-  (mapc #'apply-system *systems*))
+  (mapc #'apply-system *current-systems*))
+
+(defun enable-system (name)
+  (push name *current-systems*))
+
+(defun disable-system (name)
+  (remove name *current-systems*))

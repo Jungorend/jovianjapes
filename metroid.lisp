@@ -233,3 +233,5 @@
 (define-system 'update-timers
   #'update-timer
   'timer)
+
+(enable-system 'update-timers)
