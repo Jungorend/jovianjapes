@@ -26,6 +26,7 @@
 (defvar *free-entities* nil)
 (defvar *components* (make-array 0 :adjustable t :fill-pointer 0))
 (defvar *systems* (make-array 0 :adjustable t :fill-pointer 0))
+(defvar *current-systems* nil) ; For the systems applicable to the current scene
 
 (defun define-component (name)
   (let ((component (make-instance 'component :name name)))
@@ -94,3 +95,6 @@
          (entities (apply #'get-entities-in-system (components sys))))
     (loop for entity in entities
           do (funcall (f sys) entity))))
+
+(defun run-current-systems ()
+  (mapc #'apply-system *systems*))

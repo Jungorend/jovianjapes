@@ -165,6 +165,7 @@
   (apply-system 'render-objects)
   (end-mode-3d)
   (set-text (format nil "Position: ~A" (pos *camera*)) 400 600 20 'yellow)
+  (set-text (format nil "Pitch: ~A" (pitch *camera*)) 400 650 20 'yellow)
   (draw-fps 10 10)
   (end-drawing))
 
@@ -189,5 +190,46 @@
   (loop until (window-should-close)
         do (gather-input)
            (render-window)
+           (run-current-systems)
         finally
            (close-window)))
+
+(defclass timer ()
+  ((spd :accessor spd :initarg :spd :initform 1.0)
+   (start-time :accessor start-time :initarg :start-time)
+   (target :accessor target :initarg :target)
+   (target-place :accessor target-place :initarg :target-place)
+   (orig-value :accessor orig-value :initarg :orig-value)
+   (new-value :accessor new-value :initarg :new-value)))
+
+(define-component 'timer)
+
+(defun lerp (timer)
+  (let ((time-diff (- (get-time) (start-time timer))))
+    (if (> (* (spd timer) time-diff)
+           1.0)
+        (new-value timer)
+        (+ (orig-value timer)
+           (* (* time-diff (spd timer))
+              (- (new-value timer) (orig-value timer)))))))
+
+(defun make-timer (target target-place diff &key (spd 1.0))
+  (let ((timer
+          (make-instance 'timer :spd spd :target target :target-place target-place
+                         :orig-value (slot-value target target-place)
+                         :start-time (get-time)
+                         :new-value (+ diff (slot-value target target-place))))
+        (entity-id (make-entity)))
+    (update-component 'timer entity-id timer)))
+
+(defun update-timer (timer-id)
+  (let ((timer (get-entity-in-component 'timer timer-id)))
+    (setf (slot-value (target timer) (target-place timer))
+          (lerp timer))
+    (when (= (slot-value (target timer) (target-place timer))
+           (new-value timer))
+        (remove-entity timer-id))))
+
+(define-system 'update-timers
+  #'update-timer
+  'timer)
