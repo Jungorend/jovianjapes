@@ -114,17 +114,17 @@
                            ('north (list
                                     (first (pos *camera*))
                                     (second (pos *camera*))
-                                    (+ (nth 2 (pos *camera*)) 2.0)))
+                                    (+ (nth 2 (pos *camera*)) *cell-size*)))
                            ('east (list
-                                   (+ (first (pos *camera*)) 2.0)
+                                   (+ (first (pos *camera*)) *cell-size*)
                                    (second (pos *camera*))
                                    (nth 2 (pos *camera*))))
                            ('south (list
                                     (first (pos *camera*))
                                     (second (pos *camera*))
-                                    (- (nth 2 (pos *camera*)) 2.0)))
+                                    (- (nth 2 (pos *camera*)) *cell-size*)))
                            (otherwise (list
-                                       (- (first (pos *camera*)) 2.0)
+                                       (- (first (pos *camera*)) *cell-size*)
                                        (second (pos *camera*))
                                        (nth 2 (pos *camera*)))))))
   (when (key-pressed? (key-code 'key-s))
@@ -132,17 +132,17 @@
                            ('north (list
                                     (first (pos *camera*))
                                     (second (pos *camera*))
-                                    (- (nth 2 (pos *camera*)) 2.0)))
+                                    (- (nth 2 (pos *camera*)) *cell-size*)))
                            ('east (list
-                                   (- (first (pos *camera*)) 2.0)
+                                   (- (first (pos *camera*)) *cell-size*)
                                    (second (pos *camera*))
                                    (nth 2 (pos *camera*))))
                            ('south (list
                                     (first (pos *camera*))
                                     (second (pos *camera*))
-                                    (+ (nth 2 (pos *camera*)) 2.0)))
+                                    (+ (nth 2 (pos *camera*)) *cell-size*)))
                            (otherwise (list
-                                       (+ (first (pos *camera*)) 2.0)
+                                       (+ (first (pos *camera*)) *cell-size*)
                                        (second (pos *camera*))
                                        (nth 2 (pos *camera*)))))))
   (setf (yaw *camera*) (case (rotation *player*)
@@ -165,28 +165,13 @@
   (apply-system 'render-objects)
   (end-mode-3d)
   (set-text (format nil "Position: ~A" (pos *camera*)) 400 600 20 'yellow)
-  (set-text (format nil "Pitch: ~A" (pitch *camera*)) 400 650 20 'yellow)
+  (set-text (format nil "Yaw: ~A" (yaw *camera*)) 400 650 20 'yellow)
   (draw-fps 10 10)
   (end-drawing))
-
-;; TODO: Need to clear existing scene data
-(defun load-test-scene ()
-  (make-plane 0.0 0.0 0.0
-              32.0 32.0
-              'lightgray)
-  (make-wall 0.0 2.5 -2.0
-             5.0 10.0
-             'east-west
-             'darkgreen)
-  (make-wall 0.0 2.5 2.0
-             5.0 10.0
-             'east-west
-             'darkgreen))
 
 (defun main ()
   (init-window 1024 768 "Hello Metroid")
   (set-target-fps 60)
-  ;(load-test-scene)
   (loop until (window-should-close)
         do (gather-input)
            (render-window)
@@ -236,3 +221,8 @@
   'timer)
 
 (enable-system 'update-timers)
+
+(progn
+  (main)
+  (loop for i upto (1- (length *entities*)) do (remove-entity i))
+  (load-level "level-one"))

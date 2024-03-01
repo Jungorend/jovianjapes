@@ -3,8 +3,8 @@
 ;; TODO: Right now doesn't check for other types, no theme, etc.
 
 (defconstant +level-path+ "levels/")
-(defparameter *cell-size* 2.0)
-(defparameter *wall-size* 3.0)
+(defparameter *cell-size* 3.0)
+(defparameter *wall-size* 3.5)
 
 (defvar *current-level* (make-hash-table :test #'equal))
 
