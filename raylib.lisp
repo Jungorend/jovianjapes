@@ -94,6 +94,11 @@
   :result-type :int
   :documentation "Get current screen height")
 
+(fli:define-foreign-function (get-time "GetTime")
+  ()
+  :result-type :double-float
+  :documentation "Elapsed time in seconds since InitWindow()")
+
 (fli:define-foreign-function (%get-mouse-delta "GetMouseDelta")
   ()
   :result-type (:struct vector2)

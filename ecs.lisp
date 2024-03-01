@@ -8,6 +8,7 @@
 ;;;; (update-component) to update details for a given component
 
 ;; TODO: Right now entities are just a list of 0's
+;; TODO: Define systems should potentially update if an existing system exists
 ;; TODO: make decision whether unused systems should be removed from *systems* and therefore apply systems
 ;; just iterates through them all
 ;; This way we can recycle addresses when they are freed rather than exclusively append
@@ -103,4 +104,4 @@
   (push name *current-systems*))
 
 (defun disable-system (name)
-  (remove name *current-systems*))
+  (setf *current-systems* (remove name *current-systems*)))

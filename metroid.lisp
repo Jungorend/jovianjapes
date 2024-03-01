@@ -222,6 +222,7 @@
         (entity-id (make-entity)))
     (update-component 'timer entity-id timer)))
 
+; TODO: Timers need to be able to also accept non-slot-values
 (defun update-timer (timer-id)
   (let ((timer (get-entity-in-component 'timer timer-id)))
     (setf (slot-value (target timer) (target-place timer))
