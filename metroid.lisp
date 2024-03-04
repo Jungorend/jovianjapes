@@ -2,6 +2,8 @@
 
 (in-package #:metroid)
 
+;;;; TODO: Notify when timer action is done? Potentially so actions can then happen
+
 (defstruct vector3
   (x 0.0 :type float)
   (y 0.0 :type float)
@@ -101,14 +103,16 @@
             ('north 'east)
             ('east 'south)
             ('south 'west)
-            (otherwise 'north))))
+            (otherwise 'north)))
+    (make-timer *camera* 'yaw (- (/ pi 2)) :spd 4))
   (when (key-pressed? (key-code 'key-d))
     (setf (rotation *player*)
           (case (rotation *player*)
             ('north 'west)
             ('west 'south)
             ('south 'east)
-            (otherwise 'north))))
+            (otherwise 'north)))
+    (make-timer *camera* 'yaw (/ pi 2) :spd 4))
   (when (key-pressed? (key-code 'key-w))
     (setf (pos *camera*) (case (rotation *player*)
                            ('north (list
@@ -144,12 +148,7 @@
                            (otherwise (list
                                        (+ (first (pos *camera*)) *cell-size*)
                                        (second (pos *camera*))
-                                       (nth 2 (pos *camera*)))))))
-  (setf (yaw *camera*) (case (rotation *player*)
-                         ('west pi)
-                         ('north (/ pi 2))
-                         ('east 0.0)
-                         (otherwise (* (/ 3 2) pi)))))
+                                       (nth 2 (pos *camera*))))))))
 
 (defun gather-input ()
   (when (key-pressed? (key-code 'key-z))
@@ -221,8 +220,3 @@
   'timer)
 
 (enable-system 'update-timers)
-
-(progn
-  (main)
-  (loop for i upto (1- (length *entities*)) do (remove-entity i))
-  (load-level "level-one"))
