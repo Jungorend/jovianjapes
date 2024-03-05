@@ -94,6 +94,9 @@
 (defparameter *player* (make-instance 'player))
 
 (defun grid-movement ()
+  (when (or (key-pressed? (key-code 'key-a))
+            (key-pressed? (key-code 'key-d)))
+    (disable-system 'grid-movement))
   (when (key-pressed? (key-code 'key-a))
     (setf (rotation *player*)
           (case (rotation *player*)
@@ -153,9 +156,9 @@
   (begin-mode-3d *camera*)
   (apply-system 'render-objects)
   (end-mode-3d)
-  (set-text (format nil "Position: ~A, Direction: ~A" (pos *camera*) (rotation *player*)) 400 600 20 'yellow)
-  (set-text (format nil "Active Systems: ~A" *current-systems*) 400 625 20 'yellow)
-  (set-text (format nil "Yaw: ~A" (yaw *camera*)) 400 650 20 'yellow)
+  (set-text (format nil "Position: ~A, Direction: ~A" (pos *camera*) (rotation *player*)) 200 600 20 'yellow)
+  (set-text (format nil "Active Systems: ~A" *current-systems*) 200 625 20 'yellow)
+  (set-text (format nil "Yaw: ~A" (yaw *camera*)) 200 650 20 'yellow)
   (draw-fps 10 10)
   (end-drawing))
 
@@ -203,6 +206,12 @@
           (lerp timer))
     (when (= (slot-value (target timer) (target-place timer))
            (new-value timer))
+      (let ((completed-event (make-entity)))
+        ; TODO: Hardcoding for testing right now. Replace with accepting in the func.
+        (update-component 'event completed-event
+                          (make-instance 'event :description "Timer completed"
+                                                :func 'enable-system
+                                                :args '(grid-movement))))
         (remove-entity timer-id))))
 
 (defun render-objects (id)
@@ -215,4 +224,20 @@
 
 (enable-system 'update-timers)
 (enable-system 'grid-movement)
+
+(define-component 'event)
+(defclass event ()
+  ((description :accessor description :initarg :description)
+   (func :accessor func :initarg :func)
+   (args :accessor args :initarg :args)))
+
+(defun process-events (id)
+  (let ((event (get-entity-in-component 'event id)))
+    (if (null (args event))
+        (funcall (func event))
+        (apply (func event) (args event)))
+    (remove-entity id)))
+
+(define-system 'process-events 'event)
+(enable-system 'process-events)
 

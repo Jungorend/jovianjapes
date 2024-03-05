@@ -8,9 +8,6 @@
 ;;;; (update-component) to update details for a given component
 
 ;; TODO: Right now entities are just a list of 0's
-;; TODO: make decision whether unused systems should be removed from *systems* and therefore apply systems
-;; just iterates through them all
-;; This way we can recycle addresses when they are freed rather than exclusively append
 ;; NOTE: Each System takes exactly 1 argument, which is the id of the entity it's starting with
 
 (defclass component ()
