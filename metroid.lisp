@@ -197,6 +197,7 @@
            (* (* time-diff (spd timer))
               (- (new-value timer) (orig-value timer)))))))
 
+; TODO: callback should be created by make-timer to simplify creation
 (defun make-timer (target target-place diff &key (spd 1.0) callback)
   (let ((timer
           (make-instance 'timer :spd spd :target target :target-place target-place
