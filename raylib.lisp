@@ -161,7 +161,7 @@
    (fovy :accessor fovy :initform 100.0)
    (projection :accessor projection :initform 0)
    (up :accessor up :initform '(0.0 1.0 0.0))
-   (yaw :accessor yaw :initform 0.0)
+   (yaw :accessor yaw :initform (/ pi 2))
    (pitch :accessor pitch :initform 0.0)))
 
 (defgeneric update-camera (camera mode))

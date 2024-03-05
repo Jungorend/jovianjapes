@@ -8,7 +8,6 @@
 ;;;; (update-component) to update details for a given component
 
 ;; TODO: Right now entities are just a list of 0's
-;; TODO: Define systems should potentially update if an existing system exists
 ;; TODO: make decision whether unused systems should be removed from *systems* and therefore apply systems
 ;; just iterates through them all
 ;; This way we can recycle addresses when they are freed rather than exclusively append
@@ -35,12 +34,16 @@
           do (vector-push-extend nil (entities component)))
     (vector-push-extend component *components*)))
 
-(defun define-system (name function &rest required-components)
+(defun define-system (name &rest required-components)
   (let ((sys (make-instance 'system
                          :name name
-                         :f function
-                         :components required-components)))
-    (vector-push-extend sys *systems*)))
+                         :components required-components))
+        (existing-sys (position-if (lambda (system)
+                                     (eq name (name system)))
+                               *systems*)))
+    (if existing-sys
+        (setf (aref *systems* existing-sys) sys)
+        (vector-push-extend sys *systems*))))
 
 (defun get-component (name)
   (find-if (lambda (component)
@@ -94,8 +97,10 @@
                      (eq name (name system)))
                        *systems*))
          (entities (apply #'get-entities-in-system (components sys))))
-    (loop for entity in entities
-          do (funcall (f sys) entity))))
+    (if (null (components sys))
+        (funcall (symbol-function (name sys)))
+        (loop for entity in entities
+              do (funcall (symbol-function (name sys)) entity)))))
 
 (defun run-current-systems ()
   (mapc #'apply-system *current-systems*))

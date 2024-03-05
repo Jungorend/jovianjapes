@@ -3,6 +3,7 @@
 (in-package #:metroid)
 
 ;;;; TODO: Notify when timer action is done? Potentially so actions can then happen
+;;;; TODO: Event handler? Still thinking about how this should work
 
 (defstruct vector3
   (x 0.0 :type float)
@@ -59,10 +60,6 @@
                      (pos-z pos))
                x-length y-length z-length
                (color render-details))))
-
-(define-system 'render-objects
-  (lambda (id) (render (get-entity-in-component 'renderable id) id))
-  'renderable)
 
 (defun make-plane (x y z height width color)
   (let ((id (make-entity)))
@@ -150,20 +147,14 @@
                                        (second (pos *camera*))
                                        (nth 2 (pos *camera*))))))))
 
-(defun gather-input ()
-  (when (key-pressed? (key-code 'key-z))
-    (disable-cursor))
-  (when (key-pressed? (key-code 'key-x))
-    (enable-cursor))
-  (grid-movement))
-
 (defun render-window ()
   (begin-drawing)
   (set-background-color 'black)
   (begin-mode-3d *camera*)
   (apply-system 'render-objects)
   (end-mode-3d)
-  (set-text (format nil "Position: ~A" (pos *camera*)) 400 600 20 'yellow)
+  (set-text (format nil "Position: ~A, Direction: ~A" (pos *camera*) (rotation *player*)) 400 600 20 'yellow)
+  (set-text (format nil "Active Systems: ~A" *current-systems*) 400 625 20 'yellow)
   (set-text (format nil "Yaw: ~A" (yaw *camera*)) 400 650 20 'yellow)
   (draw-fps 10 10)
   (end-drawing))
@@ -172,9 +163,8 @@
   (init-window 1024 768 "Hello Metroid")
   (set-target-fps 60)
   (loop until (window-should-close)
-        do (gather-input)
+        do (run-current-systems)
            (render-window)
-           (run-current-systems)
         finally
            (close-window)))
 
@@ -207,7 +197,7 @@
     (update-component 'timer entity-id timer)))
 
 ; TODO: Timers need to be able to also accept non-slot-values
-(defun update-timer (timer-id)
+(defun update-timers (timer-id)
   (let ((timer (get-entity-in-component 'timer timer-id)))
     (setf (slot-value (target timer) (target-place timer))
           (lerp timer))
@@ -215,8 +205,14 @@
            (new-value timer))
         (remove-entity timer-id))))
 
-(define-system 'update-timers
-  #'update-timer
-  'timer)
+(defun render-objects (id)
+  "Generic Render system. Returns the renderable component to render."
+  (render (get-entity-in-component 'renderable id) id))
+
+(define-system 'update-timers 'timer)
+(define-system 'render-objects 'renderable)
+(define-system 'grid-movement)
 
 (enable-system 'update-timers)
+(enable-system 'grid-movement)
+
