@@ -104,7 +104,8 @@
             ('east 'south)
             ('south 'west)
             (otherwise 'north)))
-    (make-timer *camera* 'yaw (- (/ pi 2)) :spd 4))
+    (make-timer *camera* 'yaw (- (/ pi 2)) :spd 4
+                :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))))
   (when (key-pressed? (key-code 'key-d))
     (setf (rotation *player*)
           (case (rotation *player*)
@@ -112,7 +113,8 @@
             ('west 'south)
             ('south 'east)
             (otherwise 'north)))
-    (make-timer *camera* 'yaw (/ pi 2) :spd 4))
+    (make-timer *camera* 'yaw (/ pi 2) :spd 4
+                :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))))
   (when (key-pressed? (key-code 'key-w))
     (setf (pos *camera*) (case (rotation *player*)
                            ('north (list
@@ -171,12 +173,17 @@
         finally
            (close-window)))
 
+(defclass callback ()
+  ((func :accessor func :initarg :func)
+   (args :accessor args :initarg :args)))
+
 (defclass timer ()
   ((spd :accessor spd :initarg :spd :initform 1.0)
    (start-time :accessor start-time :initarg :start-time)
    (target :accessor target :initarg :target)
    (target-place :accessor target-place :initarg :target-place)
    (orig-value :accessor orig-value :initarg :orig-value)
+   (callback :accessor callback :initarg :callback)
    (new-value :accessor new-value :initarg :new-value)))
 
 (define-component 'timer)
@@ -190,11 +197,12 @@
            (* (* time-diff (spd timer))
               (- (new-value timer) (orig-value timer)))))))
 
-(defun make-timer (target target-place diff &key (spd 1.0))
+(defun make-timer (target target-place diff &key (spd 1.0) callback)
   (let ((timer
           (make-instance 'timer :spd spd :target target :target-place target-place
                          :orig-value (slot-value target target-place)
                          :start-time (get-time)
+                         :callback callback
                          :new-value (+ diff (slot-value target target-place))))
         (entity-id (make-entity)))
     (update-component 'timer entity-id timer)))
@@ -206,12 +214,11 @@
           (lerp timer))
     (when (= (slot-value (target timer) (target-place timer))
            (new-value timer))
-      (let ((completed-event (make-entity)))
-        ; TODO: Hardcoding for testing right now. Replace with accepting in the func.
-        (update-component 'event completed-event
-                          (make-instance 'event :description "Timer completed"
-                                                :func 'enable-system
-                                                :args '(grid-movement))))
+      (if (callback timer)
+          (let ((completed-event (make-entity)))
+            (update-component 'event completed-event
+                              (make-instance 'event :description "Timer completed"
+                                             :callback (callback timer)))))
         (remove-entity timer-id))))
 
 (defun render-objects (id)
@@ -228,16 +235,15 @@
 (define-component 'event)
 (defclass event ()
   ((description :accessor description :initarg :description)
-   (func :accessor func :initarg :func)
-   (args :accessor args :initarg :args)))
+   (callback :accessor callback :initarg :callback)))
 
 (defun process-events (id)
-  (let ((event (get-entity-in-component 'event id)))
-    (if (null (args event))
-        (funcall (func event))
-        (apply (func event) (args event)))
+  (let* ((event (get-entity-in-component 'event id))
+        (callback (callback event)))
+    (if (null (args callback))
+        (funcall (func callback))
+        (apply (func callback) (args callback)))
     (remove-entity id)))
 
 (define-system 'process-events 'event)
 (enable-system 'process-events)
-
