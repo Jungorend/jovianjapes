@@ -1,12 +1,24 @@
 (in-package #:metroid)
 
 ;; TODO: Right now doesn't check for other types, no theme, etc.
+;; Load level should potentially check for keywords rather than hardcode exact format?
+;; might not matter.
 
 (defconstant +level-path+ "levels/")
 (defparameter *cell-size* 3.0)
 (defparameter *wall-size* 3.5)
 
 (defvar *current-level* (make-hash-table :test #'equal))
+(defvar *encounter-timer* nil)
+
+(defclass encounter-timer ()
+  ((ticker :accessor ticker :initform 0)
+   (thresholds :accessor thresholds :initarg :thresholds)))
+
+(defun make-encounter-timer (&rest thresholds)
+  (make-instance 'encounter-timer
+    :thresholds (loop for (advance-chance trigger-chance) on thresholds by #'cddr
+                      collect (cons advance-chance trigger-chance))))
 
 (defun get-cell (x y)
   (gethash (list x y) *current-level*))
@@ -16,6 +28,14 @@
 
 (defun save-level (filename)
   (with-open-file (s (concatenate 'string +level-path+ filename) :direction :output :if-exists :supersede :if-does-not-exist :create)
+    (format s "ENCOUNTER-RATE ~S~%"
+            (reverse
+             (reduce (lambda (result threshold)
+                       (cons (cdr threshold)
+                             (cons (car threshold)
+                                   result)))
+                     (thresholds *encounter-timer*)
+                     :initial-value '())))
     (maphash (lambda (loc room-type)
                (format s "~S ~S~%" loc room-type))
              *current-level*)))
@@ -50,6 +70,8 @@
 (defun load-level (filename)
   (clrhash *current-level*)
   (with-open-file (s (concatenate 'string +level-path+ filename))
+    (read s nil) ; ENCOUNTER-RATE
+    (setf *encounter-timer* (apply #'make-encounter-timer (read s nil)))
     (loop for loc = (read s nil)
           for room-type = (read s nil)
           while room-type

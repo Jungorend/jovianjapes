@@ -248,3 +248,12 @@
 
 (define-system 'process-events 'event)
 (enable-system 'process-events)
+
+(defun tick (encounter-timer)
+  (let ((stage (nth (ticker encounter-timer) (thresholds encounter-timer))))
+    (cond ((<= (random 100) (first stage))
+           (incf (ticker encounter-timer)))
+          ((<= (random 100) (rest stage))
+           (let ((entity (make-entity)))
+             (update-component 'event entity (make-instance 'event :description "Encounter occurred" :callback (lambda () '())))))
+          ('otherwise nil))))
