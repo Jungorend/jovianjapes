@@ -3,7 +3,7 @@
 (in-package #:metroid)
 
 ;;;; TODO: Notify when timer action is done? Potentially so actions can then happen
-;;;; TODO: Event handler? Still thinking about how this should work
+;;;; TODO: Event handler? Still thinking about how this should work. Maybe should be not in ECS.
 
 (defstruct vector3
   (x 0.0 :type float)
@@ -175,7 +175,7 @@
 
 (defclass callback ()
   ((func :accessor func :initarg :func)
-   (args :accessor args :initarg :args)))
+   (args :accessor args :initarg :args :initform nil)))
 
 (defclass timer ()
   ((spd :accessor spd :initarg :spd :initform 1.0)
@@ -208,6 +208,12 @@
         (entity-id (make-entity)))
     (update-component 'timer entity-id timer)))
 
+(defun make-event (description callback)
+  (let ((event (make-entity)))
+    (update-component 'event event
+                      (make-instance 'event :description description
+                                     :callback callback))))
+
 ; TODO: Timers need to be able to also accept non-slot-values
 (defun update-timers (timer-id)
   (let ((timer (get-entity-in-component 'timer timer-id)))
@@ -215,11 +221,8 @@
           (lerp timer))
     (when (= (slot-value (target timer) (target-place timer))
            (new-value timer))
-      (if (callback timer)
-          (let ((completed-event (make-entity)))
-            (update-component 'event completed-event
-                              (make-instance 'event :description "Timer completed"
-                                             :callback (callback timer)))))
+      (when (callback timer)
+        (make-event "Timer Completed" (callback timer)))
         (remove-entity timer-id))))
 
 (defun render-objects (id)
@@ -249,11 +252,18 @@
 (define-system 'process-events 'event)
 (enable-system 'process-events)
 
-(defun tick (encounter-timer)
+
+(define-component 'game-tick)
+; TODO: Make system that events can push to call each game-tick
+
+(defgeneric game-tick (obj) (:documentation "These are the calls that only update every time the player performs an action."))
+(defmethod game-tick ((encounter-timer encounter-timer))
   (let ((stage (nth (ticker encounter-timer) (thresholds encounter-timer))))
     (cond ((<= (random 100) (first stage))
            (incf (ticker encounter-timer)))
           ((<= (random 100) (rest stage))
-           (let ((entity (make-entity)))
-             (update-component 'event entity (make-instance 'event :description "Encounter occurred" :callback (lambda () '())))))
+           (progn
+             (make-event "Encounter occurred"
+                         (make-instance 'callback :func (lambda () '()))) ; TODO: Write actual function
+             (setf (ticker encounter-timer) 0)))
           ('otherwise nil))))

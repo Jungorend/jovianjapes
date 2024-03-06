@@ -26,6 +26,10 @@
 (defun set-cell (x y object)
   (setf (gethash (list x y) *current-level*) object))
 
+(defun get-encounter-timer ()
+  (find-if (lambda (x) (typep x 'encounter-timer))
+           (entities (get-component 'game-tick))))
+
 (defun save-level (filename)
   (with-open-file (s (concatenate 'string +level-path+ filename) :direction :output :if-exists :supersede :if-does-not-exist :create)
     (format s "ENCOUNTER-RATE ~S~%"
@@ -34,7 +38,7 @@
                        (cons (cdr threshold)
                              (cons (car threshold)
                                    result)))
-                     (thresholds *encounter-timer*)
+                     (thresholds (get-encounter-timer))
                      :initial-value '())))
     (maphash (lambda (loc room-type)
                (format s "~S ~S~%" loc room-type))
@@ -71,7 +75,8 @@
   (clrhash *current-level*)
   (with-open-file (s (concatenate 'string +level-path+ filename))
     (read s nil) ; ENCOUNTER-RATE
-    (setf *encounter-timer* (apply #'make-encounter-timer (read s nil)))
+    (let ((entity (make-entity)))
+      (update-component 'game-tick entity (apply #'make-encounter-timer (read s nil))))
     (loop for loc = (read s nil)
           for room-type = (read s nil)
           while room-type
