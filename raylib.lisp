@@ -157,7 +157,7 @@
     (%draw-plane center s col)))
 
 (defclass camera-3d ()
-  ((position :accessor pos :initform '(0.0 2.0 0.0))
+  ((pos :accessor pos :initform '(0.0 2.0 0.0))
    (fovy :accessor fovy :initform 100.0)
    (projection :accessor projection :initform 0)
    (up :accessor up :initform '(0.0 1.0 0.0))

@@ -95,6 +95,7 @@
 
 (defun grid-movement ()
   (when (or (key-pressed? (key-code 'key-a))
+            (key-pressed? (key-code 'key-w))
             (key-pressed? (key-code 'key-d)))
     (disable-system 'grid-movement))
   (when (key-pressed? (key-code 'key-a))
@@ -116,23 +117,19 @@
     (make-timer *camera* 'yaw (/ pi 2) :spd 4
                 :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))))
   (when (key-pressed? (key-code 'key-w))
-    (setf (pos *camera*) (case (rotation *player*)
-                           ('north (list
-                                    (first (pos *camera*))
-                                    (second (pos *camera*))
-                                    (+ (nth 2 (pos *camera*)) *cell-size*)))
-                           ('east (list
-                                   (+ (first (pos *camera*)) *cell-size*)
-                                   (second (pos *camera*))
-                                   (nth 2 (pos *camera*))))
-                           ('south (list
-                                    (first (pos *camera*))
-                                    (second (pos *camera*))
-                                    (- (nth 2 (pos *camera*)) *cell-size*)))
-                           (otherwise (list
-                                       (- (first (pos *camera*)) *cell-size*)
-                                       (second (pos *camera*))
-                                       (nth 2 (pos *camera*)))))))
+    (case (rotation *player*)
+      ('north (make-timer *camera* 'pos (+ (nth 2 (pos *camera*)) *cell-size*)
+                          :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                          :target-subposition 2))
+      ('east (make-timer *camera* 'pos (+ (first (pos *camera*)) *cell-size*)
+                         :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                         :target-subposition 0))
+      ('south (make-timer *camera* 'pos (- (nth 2 (pos *camera*)) *cell-size*)
+                          :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                          :target-subposition 2))
+      (otherwise (make-timer *camera* 'pos (- (first (pos *camera*)) *cell-size*)
+                             :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                             :target-subposition 0))))
   (when (key-pressed? (key-code 'key-s))
     (setf (pos *camera*) (case (rotation *player*)
                            ('north (list
@@ -182,6 +179,7 @@
    (start-time :accessor start-time :initarg :start-time)
    (target :accessor target :initarg :target)
    (target-place :accessor target-place :initarg :target-place)
+   (target-subposition :accessor target-subposition :initarg :target-subposition)
    (orig-value :accessor orig-value :initarg :orig-value)
    (callback :accessor callback :initarg :callback)
    (new-value :accessor new-value :initarg :new-value)))
@@ -198,15 +196,19 @@
               (- (new-value timer) (orig-value timer)))))))
 
 ; TODO: callback should be created by make-timer to simplify creation
-(defun make-timer (target target-place diff &key (spd 1.0) callback)
-  (let ((timer
-          (make-instance 'timer :spd spd :target target :target-place target-place
-                         :orig-value (slot-value target target-place)
-                         :start-time (get-time)
-                         :callback callback
-                         :new-value (+ diff (slot-value target target-place))))
-        (entity-id (make-entity)))
+(defun make-timer (target target-place diff &key (spd 1.0) callback (target-subposition nil))
+  (let* ((orig-value (if target-subposition
+                         (nth target-subposition (slot-value target target-place))
+                         (slot-value target target-place)))
+         (entity-id (make-entity))
+         (timer (make-instance 'timer :spd spd :target target :target-place target-place
+                               :orig-value orig-value
+                               :start-time (get-time)
+                               :target-subposition target-subposition
+                               :callback callback
+                               :new-value (+ diff orig-value))))
     (update-component 'timer entity-id timer)))
+
 
 (defun make-event (description callback)
   (let ((event (make-entity)))
@@ -216,14 +218,18 @@
 
 ; TODO: Timers need to be able to also accept non-slot-values
 (defun update-timers (timer-id)
-  (let ((timer (get-entity-in-component 'timer timer-id)))
-    (setf (slot-value (target timer) (target-place timer))
-          (lerp timer))
-    (when (= (slot-value (target timer) (target-place timer))
-           (new-value timer))
+  (let* ((timer (get-entity-in-component 'timer timer-id))
+        (adjusted-value (lerp timer)))
+    (if (target-subposition timer)
+        (setf (nth (target-subposition timer)
+                   (slot-value (target timer) (target-place timer)))
+              adjusted-value)
+        (setf (slot-value (target timer) (target-place timer))
+              adjusted-value))
+    (when (= adjusted-value (new-value timer))
       (when (callback timer)
         (make-event "Timer Completed" (callback timer)))
-        (remove-entity timer-id))))
+      (remove-entity timer-id))))
 
 (defun render-objects (id)
   "Generic Render system. Returns the renderable component to render."
