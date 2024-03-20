@@ -9,5 +9,6 @@
   :components ((:file "package")
                (:file "raylib")
                (:file "ecs")
+               (:file "debug-ui")
                (:file "leveleditor")
                (:file "metroid")))
