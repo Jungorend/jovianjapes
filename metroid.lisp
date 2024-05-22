@@ -163,6 +163,7 @@
 
 (defun main ()
   (init-window 1024 768 "Hello Metroid")
+  (load-level "level-one")
   (set-target-fps 60)
   (loop until (window-should-close)
         do (run-current-systems)
