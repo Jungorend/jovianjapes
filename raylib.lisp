@@ -30,6 +30,51 @@
   (m2 :float) (m6 :float) (m10 :float) (m14 :float)
   (m3 :float) (m7 :float) (m11 :float) (m15 :float))
 
+(fli:define-c-struct mesh
+  (vertex-count :int)
+  (triangle-count :int)
+  (vertices (:pointer :float))
+  (texcoords (:pointer :float))
+  (texcoords2 (:pointer :float))
+  (normals (:pointer :float))
+  (tangents (:pointer :float))
+  (colors (:pointer (:unsigned :char)))
+  (indices (:pointer (:unsigned :short)))
+
+  (anim-vertices (:pointer :float))
+  (anim-normals (:pointer :float))
+  (bone-ids (:pointer (:unsigned :char)))
+  (bone-weights (:pointer :float))
+
+  (vao-id (:unsigned :int))
+  (vbo-id (:unsigned :int)))
+
+(fli:define-c-struct model        ; NOTE: None of these are actually expanded on
+  (transform (:struct matrix))
+  (mesh-count :int)
+  (material-count :int)
+  (meshes :pointer)
+  (material-number :pointer)
+  (bone-count :int)
+  (bone-info :pointer)
+  (bind-pose :pointer))
+
+
+(fli:define-foreign-function (load-model "LoadModel")
+  ((file-name (:reference-pass :ef-mb-string)))
+  :result-type (:struct model)
+  :result-pointer model
+  :documentation "Load model from files (meshes and materials)")
+
+(fli:define-foreign-function (model-ready? "IsModelReady")
+  ((model (:struct model)))
+  :result-type :boolean
+  :documentation "Check if a model is ready")
+
+(fli:define-foreign-function (unload-model "UnloadModel")
+  ((model (:struct model)))
+  :documentation "Unload model (including mesh) from memory (RAM and/or VRAM)")
+
 (fli:define-foreign-function (%get-camera-matrix "GetCameraMatrix")
     ((camera (:struct camera3D)))
   :result-type (:struct matrix)
@@ -100,7 +145,7 @@
   :documentation "Elapsed time in seconds since InitWindow()")
 
 (fli:define-foreign-function (%get-mouse-delta "GetMouseDelta")
-  ()
+    ()
   :result-type (:struct vector2)
   :result-pointer return-result)
 
@@ -197,17 +242,17 @@
           (cam (fli:allocate-dynamic-foreign-object :type 'camera3D))
           (yaw (coerce (yaw camera) 'single-float))
           (pitch (coerce (pitch camera) 'single-float)))
-      (setf (fli:foreign-slot-value pos 'x) (nth 0 (pos camera))
-            (fli:foreign-slot-value pos 'y) (nth 1 (pos camera))
-            (fli:foreign-slot-value pos 'z) (nth 2 (pos camera))
+      (setf (fli:foreign-slot-value pos 'x) (coerce (nth 0 (pos camera)) 'single-float)
+            (fli:foreign-slot-value pos 'y) (coerce (nth 1 (pos camera)) 'single-float)
+            (fli:foreign-slot-value pos 'z) (coerce (nth 2 (pos camera)) 'single-float)
             (fli:foreign-slot-value cam 'position :copy-foreign-object nil) pos
-            (fli:foreign-slot-value target 'x) (+ (first (pos camera)) (* (cos yaw) (cos pitch)))
-            (fli:foreign-slot-value target 'y) (+ (second (pos camera)) (sin pitch))
-            (fli:foreign-slot-value target 'z) (+ (nth 2 (pos camera)) (* (sin yaw) (cos pitch)))
+            (fli:foreign-slot-value target 'x) (coerce  (+ (first (pos camera)) (* (cos yaw) (cos pitch))) 'single-float)
+            (fli:foreign-slot-value target 'y) (coerce (+ (second (pos camera)) (sin pitch)) 'single-float)
+            (fli:foreign-slot-value target 'z) (coerce (+ (nth 2 (pos camera)) (* (sin yaw) (cos pitch))) 'single-float)
             (fli:foreign-slot-value cam 'target :copy-foreign-object nil) target
-            (fli:foreign-slot-value up 'x) (nth 0 (up camera))
-            (fli:foreign-slot-value up 'y) (nth 1 (up camera))
-            (fli:foreign-slot-value up 'z) (nth 2 (up camera))
+            (fli:foreign-slot-value up 'x) (coerce (nth 0 (up camera)) 'single-float)
+            (fli:foreign-slot-value up 'y) (coerce (nth 1 (up camera)) 'single-float)
+            (fli:foreign-slot-value up 'z) (coerce (nth 2 (up camera)) 'single-float)
             (fli:foreign-slot-value cam 'up :copy-foreign-object nil) up
             (fli:foreign-slot-value cam 'fovy) (fovy camera)
             (fli:foreign-slot-value cam 'projection) (projection camera))

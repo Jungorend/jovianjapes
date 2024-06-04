@@ -96,6 +96,7 @@
 (defun grid-movement ()
   (when (or (key-pressed? (key-code 'key-a))
             (key-pressed? (key-code 'key-w))
+            (key-pressed? (key-code 'key-s))
             (key-pressed? (key-code 'key-d)))
     (disable-system 'grid-movement))
   (when (key-pressed? (key-code 'key-a))
@@ -106,7 +107,7 @@
             ('south 'west)
             (otherwise 'north)))
     (make-timer *camera* 'yaw (- (/ pi 2)) :spd 4
-                :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))))
+                                           :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))))
   (when (key-pressed? (key-code 'key-d))
     (setf (rotation *player*)
           (case (rotation *player*)
@@ -115,55 +116,58 @@
             ('south 'east)
             (otherwise 'north)))
     (make-timer *camera* 'yaw (/ pi 2) :spd 4
-                :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))))
+                                       :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))))
   (when (key-pressed? (key-code 'key-w))
     (case (rotation *player*)
-      ('north (make-timer *camera* 'pos (+ (nth 2 (pos *camera*)) *cell-size*)
+      ('east (make-timer *camera* 'pos *cell-size*
                           :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                          :spd 4.0
                           :target-subposition 2))
-      ('east (make-timer *camera* 'pos (+ (first (pos *camera*)) *cell-size*)
+      ('south (make-timer *camera* 'pos *cell-size*
                          :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                         :spd 4.0
                          :target-subposition 0))
-      ('south (make-timer *camera* 'pos (- (nth 2 (pos *camera*)) *cell-size*)
+      ('west (make-timer *camera* 'pos (- *cell-size*)
                           :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                          :spd 4.0
                           :target-subposition 2))
-      (otherwise (make-timer *camera* 'pos (- (first (pos *camera*)) *cell-size*)
+      (otherwise (make-timer *camera* 'pos (- *cell-size*)
+                             :spd 4.0
                              :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
                              :target-subposition 0))))
   (when (key-pressed? (key-code 'key-s))
-    (setf (pos *camera*) (case (rotation *player*)
-                           ('north (list
-                                    (first (pos *camera*))
-                                    (second (pos *camera*))
-                                    (- (nth 2 (pos *camera*)) *cell-size*)))
-                           ('east (list
-                                   (- (first (pos *camera*)) *cell-size*)
-                                   (second (pos *camera*))
-                                   (nth 2 (pos *camera*))))
-                           ('south (list
-                                    (first (pos *camera*))
-                                    (second (pos *camera*))
-                                    (+ (nth 2 (pos *camera*)) *cell-size*)))
-                           (otherwise (list
-                                       (+ (first (pos *camera*)) *cell-size*)
-                                       (second (pos *camera*))
-                                       (nth 2 (pos *camera*))))))))
+    (case (rotation *player*)
+      ('east (make-timer *camera* 'pos (- *cell-size*)
+                          :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                          :spd 4.0
+                          :target-subposition 2))
+      ('south (make-timer *camera* 'pos (- *cell-size*)
+                         :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                         :spd 4.0
+                         :target-subposition 0))
+      ('west (make-timer *camera* 'pos *cell-size*
+                          :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                          :spd 4.0
+                          :target-subposition 2))
+      (otherwise (make-timer *camera* 'pos *cell-size*
+                             :spd 4.0
+                             :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                             :target-subposition 0)))))
 
-(defun render-window ()
-  (begin-drawing)
-  (set-background-color 'black)
-  (begin-mode-3d *camera*)
-  (apply-system 'render-objects)
-  (end-mode-3d)
-  (set-text (format nil "Position: ~A, Direction: ~A" (pos *camera*) (rotation *player*)) 200 600 20 'yellow)
-  (set-text (format nil "Active Systems: ~A" *current-systems*) 200 625 20 'yellow)
-  (set-text (format nil "Yaw: ~A" (yaw *camera*)) 200 650 20 'yellow)
-  (draw-fps 10 10)
-  (end-drawing))
+  (defun render-window ()
+    (begin-drawing)
+    (set-background-color 'black)
+    (begin-mode-3d *camera*)
+    (apply-system 'render-objects)
+    (end-mode-3d)
+    (set-text (format nil "Position: ~A, Direction: ~A" (pos *camera*) (rotation *player*)) 200 600 20 'yellow)
+    (set-text (format nil "Active Systems: ~A" *current-systems*) 200 625 20 'yellow)
+    (set-text (format nil "Yaw: ~A" (yaw *camera*)) 200 650 20 'yellow)
+    (draw-fps 10 10)
+    (end-drawing))
 
 (defun main ()
   (init-window 1024 768 "Hello Metroid")
-  (load-level "level-one")
   (set-target-fps 60)
   (loop until (window-should-close)
         do (run-current-systems)
