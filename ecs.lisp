@@ -27,8 +27,8 @@
 
 (defun define-component (name)
   (let ((component (make-instance 'component :name name)))
-    (loop for i upto (- (length *entities*) 1)
-          do (vector-push-extend nil (entities component)))
+    (dotimes (_ (length *entities*))
+      (vector-push-extend nil (entities components)))
     (vector-push-extend component *components*)))
 
 (defun define-system (name &rest required-components)
@@ -83,7 +83,7 @@
                                     (cons c results)
                                     results)))
                             required-components :initial-value '())))
-    (loop for i upto (- (length *entities*) 1)
+    (loop for i below (length *entities*)
           when (every (lambda (component)
                         (aref (entities component) i))
                       components)
