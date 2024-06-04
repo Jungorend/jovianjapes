@@ -1,4 +1,4 @@
-(in-package #:metroid)
+(in-package #:liminality)
 
 #+mswindows (fli:register-module "raylib" :file-name "./lib/raylib.dll" :connection-style :immediate) ; Windows
 #-mswindows (fli:register-module "raylib" :file-name "./lib/libraylib.so.450" :connection-style :immediate) ; Linux

@@ -1,4 +1,4 @@
-(in-package #:metroid)
+(in-package #:liminality)
 
 ;;;; This is the Entity-Component-System Framework for the game
 ;;;;

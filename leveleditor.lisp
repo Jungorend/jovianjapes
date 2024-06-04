@@ -1,4 +1,4 @@
-(in-package #:metroid)
+(in-package #:liminality)
 
 ;; TODO: Right now doesn't check for other types, no theme, etc.
 ;; Load level should potentially check for keywords rather than hardcode exact format?

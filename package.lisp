@@ -1,4 +1,4 @@
 ;;;; package.lisp
 
-(defpackage #:metroid
+(defpackage #:liminality
   (:use #:cl))

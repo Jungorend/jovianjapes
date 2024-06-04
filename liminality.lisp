@@ -1,6 +1,6 @@
-;;;; metroid.lisp
+;;;; liminality.lisp
 
-(in-package #:metroid)
+(in-package #:liminality)
 
 ;;;; TODO: Notify when timer action is done? Potentially so actions can then happen
 ;;;; TODO: Event handler? Still thinking about how this should work. Maybe should be not in ECS.
@@ -167,7 +167,7 @@
     (end-drawing))
 
 (defun main ()
-  (init-window 1024 768 "Hello Metroid")
+  (init-window 1024 768 "Liminality")
   (set-target-fps 60)
   (loop until (window-should-close)
         do (run-current-systems)

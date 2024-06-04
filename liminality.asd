@@ -1,7 +1,7 @@
 ;;;; metroid.asd
 
-(asdf:defsystem #:metroid
-  :description "Messing around with Raylib"
+(asdf:defsystem #:liminality
+  :description "Dungeon Crawler with Raylib"
   :author "Jungy"
   :license  "TBD"
   :version "0.0.1"
@@ -11,4 +11,4 @@
                (:file "ecs")
                (:file "debug-ui")
                (:file "leveleditor")
-               (:file "metroid")))
+               (:file "liminality")))

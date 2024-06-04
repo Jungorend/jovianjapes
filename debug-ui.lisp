@@ -1,4 +1,4 @@
-(in-package #:metroid)
+(in-package #:liminality)
 
 (defun ecs-debug-update-tree-view (data interface)
   (setf (capi:tree-view-roots (entity-tree-pane interface))
