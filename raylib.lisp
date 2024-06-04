@@ -1,7 +1,9 @@
 (in-package #:liminality)
 
 #+mswindows (fli:register-module "raylib" :file-name "./lib/raylib.dll" :connection-style :immediate) ; Windows
-#-mswindows (fli:register-module "raylib" :file-name "./lib/libraylib.so.450" :connection-style :immediate) ; Linux
+#+darwin (fli:register-module "raylib" :file-name "/opt/homebrew/Cellar/raylib/5.0/lib/libraylib.dylib" :connection-style :immediate)
+#+linux (fli:register-module "raylib" :file-name "./lib/libraylib.so.450" :connection-style :immediate) ; Linux
+
 
 (fli:define-c-typedef bool (:boolean :byte))
 
@@ -258,15 +260,15 @@
             (fli:foreign-slot-value cam 'projection) (projection camera))
       (%begin-mode-3d cam))))
 
-(defmacro build-hash-table (table &rest values &key (test 'eql) &allow-other-keys)
+(defmacro build-hash-table (table (&key (test 'eql)) &rest values)
   (let ((entry (gensym)))
     `(progn
-       (setf ,table (make-hash-table :test ,test))
+       (setf ,table (make-hash-table :test ',test))
        (dolist (,entry ',values)
          (setf (gethash (first ,entry) ,table)
                (second ,entry))))))
 
-(build-hash-table +colors+
+(build-hash-table +colors+ ()
                   (lightgray (200 200 200 255))
                   (gray (130 130 130 255))
                   (darkgray (80 80 80 255))
@@ -291,14 +293,14 @@
                   (magenta (255 0 255 255))
                   (raywhite (245 245 245 255)))
 
-(build-hash-table +camera-modes+
+(build-hash-table +camera-modes+ ()
                   (camera-custom 0)
                   (camera-free 1)
                   (camera-orbital 2)
                   (camera-first-person 3)
                   (camera-third-person 4))
 
-(build-hash-table +input-codes+
+(build-hash-table +input-codes+ ()
                   (key-null 0)
                   (key-apostrophe 39) (key-comma 44) (key-minus 45) (key-period 46) (key-slash 47)
                   (key-zero 48) (key-one 49) (key-two 50) (key-three 51) (key-four 52) (key-five 53) (key-six 54) (key-seven 55) (key-eight 56) (key-nine 57)
