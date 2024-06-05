@@ -10,6 +10,12 @@
 ;; TODO: Right now entities are just a list of 0's
 ;; NOTE: Each System takes exactly 1 argument, which is the id of the entity it's starting with
 
+(defvar *entities* (make-array 0 :adjustable t :fill-pointer 0))
+(defvar *free-entities* nil)
+(defvar *components* (make-array 0 :adjustable t :fill-pointer 0))
+(defvar *systems* (make-array 0 :adjustable t :fill-pointer 0))
+(defvar *current-systems* nil) ; For the systems applicable to the current scene
+
 (defclass component ()
   ((name :accessor name :initarg :name :type 'symbol)
    (entities :accessor entities :initform (make-array 0 :adjustable t :fill-pointer 0))))
@@ -19,25 +25,35 @@
    (f :accessor f :initarg :f :type 'function)
    (components :accessor components :initarg :components)))
 
-(defvar *entities* (make-array 0 :adjustable t :fill-pointer 0))
-(defvar *free-entities* nil)
-(defvar *components* (make-array 0 :adjustable t :fill-pointer 0))
-(defvar *systems* (make-array 0 :adjustable t :fill-pointer 0))
-(defvar *current-systems* nil) ; For the systems applicable to the current scene
+(defun %get-component-name (name)
+  (intern (concatenate 'string (with-output-to-string (s)
+                                 (princ name s))
+                       "-COMPONENT")))
 
-(defun define-component (name)
-  (let ((component (make-instance 'component :name name)))
-    (dotimes (_ (length *entities*))
-      (vector-push-extend nil (entities components)))
-    (vector-push-extend component *components*)))
+(defmacro define-component (name slots)
+  (let ((classname (%get-component-name name))
+        (component `(make-instance 'component :name ',name)))
+    `(progn
+       (defclass ,classname () ,slots)
+       (dotimes (_ (length *entities*))
+         (vector-push-extend nil (entities components)))
+       (vector-push-extend ,component *components*))))
+
+(defun add-component (entity component &rest slots)
+  (setf (get-entity-in-component component entity)
+        (apply #'make-instance (%get-component-name component) slots)))
+
+(defun remove-component (entity component)
+  (setf (get-entity-in-component component entity)
+        nil))
 
 (defun define-system (name &rest required-components)
   (let ((sys (make-instance 'system
-                         :name name
-                         :components required-components))
+                            :name name
+                            :components required-components))
         (existing-sys (position-if (lambda (system)
                                      (eq name (name system)))
-                               *systems*)))
+                                   *systems*)))
     (if existing-sys
         (setf (aref *systems* existing-sys) sys)
         (vector-push-extend sys *systems*))))
@@ -91,7 +107,7 @@
 
 (defun apply-system (name)
   (let* ((sys (find-if (lambda (system)
-                     (eq name (name system)))
+                         (eq name (name system)))
                        *systems*))
          (entities (apply #'get-entities-in-system (components sys))))
     (if (null (components sys))

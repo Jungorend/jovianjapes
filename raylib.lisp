@@ -1,7 +1,7 @@
 (in-package #:liminality)
 
 #+mswindows (fli:register-module "raylib" :file-name "./lib/raylib.dll" :connection-style :immediate) ; Windows
-#+darwin (fli:register-module "raylib" :file-name "/opt/homebrew/Cellar/raylib/5.0/lib/libraylib.dylib" :connection-style :immediate)
+#+darwin (fli:register-module "raylib" :file-name "/opt/homebrew/Cellar/raylib/5.0/lib/libraylib.450.dylib" :connection-style :immediate)
 #+linux (fli:register-module "raylib" :file-name "./lib/libraylib.so.450" :connection-style :immediate) ; Linux
 
 

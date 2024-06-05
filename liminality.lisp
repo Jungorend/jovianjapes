@@ -10,13 +10,18 @@
   (y 0.0 :type float)
   (z 0.0 :type float))
 
-(define-component 'pos)
-(defstruct pos
-  (x 0.0 :type float)
-  (y 0.0 :type float)
-  (z 0.0 :type float))
+(define-component pos
+    ((x :initform 0.0 :accessor x)
+     (y :initform 0.0 :accessor y)
+     (z :initform 0.0 :accessor z)))
 
-(define-component 'renderable)
+(define-component movement
+    ((initial-position :accessor initial-position)
+     (speed :accessor spd)
+     (target-position :accessor target-position)
+     (state :accessor state)))
+
+(define-component 'renderable ())
 
 (defclass renderable () nil
   (:documentation "A base renderable object"))
@@ -71,16 +76,16 @@
     (update-component 'pos id (make-pos :x x :y y :z z))
     (update-component 'renderable id (make-instance 'renderable/wall :width width :height height :orientation orientation :color color))))
 
-(define-component 'viewable)
-(defstruct viewable
-  (target (make-vector3) :type vector3)
-  (up (make-vector3) :type vector3)
-  (fovy 45.0 :type float)
-  (projection 0 :type fixnum))
+(define-component 'viewable
+    ((target :accessor target :initform (make-vector3))
+     (up :accessor target :initform (make-vector3))
+     (fovy :accessor fovy :initform 45.0)
+     (projection :accessor projection :initform 0)))
 
 (defclass player ()
   ((x :accessor x :initform 0)
    (y :accessor y :initform 0)
+   (state :accessor state :initform 'stationary)
    (rotation :accessor rotation :initform 'north)))
 
 (defun make-camera (&key (x 0.0) (y 0.0) (z 0.0))
@@ -102,69 +107,69 @@
   (when (key-pressed? (key-code 'key-a))
     (setf (rotation *player*)
           (case (rotation *player*)
-            ('north 'east)
-            ('east 'south)
-            ('south 'west)
+            (north 'east)
+            (east 'south)
+            (south 'west)
             (otherwise 'north)))
     (make-timer *camera* 'yaw (- (/ pi 2)) :spd 4
                                            :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))))
   (when (key-pressed? (key-code 'key-d))
     (setf (rotation *player*)
           (case (rotation *player*)
-            ('north 'west)
-            ('west 'south)
-            ('south 'east)
+            (north 'west)
+            (west 'south)
+            (south 'east)
             (otherwise 'north)))
     (make-timer *camera* 'yaw (/ pi 2) :spd 4
                                        :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))))
   (when (key-pressed? (key-code 'key-w))
     (case (rotation *player*)
-      ('east (make-timer *camera* 'pos *cell-size*
-                          :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
-                          :spd 4.0
-                          :target-subposition 2))
-      ('south (make-timer *camera* 'pos *cell-size*
+      (east (make-timer *camera* 'pos *cell-size*
+                        :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                        :spd 4.0
+                        :target-subposition 2))
+      (south (make-timer *camera* 'pos *cell-size*
                          :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
                          :spd 4.0
                          :target-subposition 0))
-      ('west (make-timer *camera* 'pos (- *cell-size*)
-                          :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
-                          :spd 4.0
-                          :target-subposition 2))
+      (west (make-timer *camera* 'pos (- *cell-size*)
+                        :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                        :spd 4.0
+                        :target-subposition 2))
       (otherwise (make-timer *camera* 'pos (- *cell-size*)
                              :spd 4.0
                              :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
                              :target-subposition 0))))
   (when (key-pressed? (key-code 'key-s))
     (case (rotation *player*)
-      ('east (make-timer *camera* 'pos (- *cell-size*)
-                          :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
-                          :spd 4.0
-                          :target-subposition 2))
-      ('south (make-timer *camera* 'pos (- *cell-size*)
+      (east (make-timer *camera* 'pos (- *cell-size*)
+                        :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                        :spd 4.0
+                        :target-subposition 2))
+      (south (make-timer *camera* 'pos (- *cell-size*)
                          :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
                          :spd 4.0
                          :target-subposition 0))
-      ('west (make-timer *camera* 'pos *cell-size*
-                          :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
-                          :spd 4.0
-                          :target-subposition 2))
+      (west (make-timer *camera* 'pos *cell-size*
+                        :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
+                        :spd 4.0
+                        :target-subposition 2))
       (otherwise (make-timer *camera* 'pos *cell-size*
                              :spd 4.0
                              :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
                              :target-subposition 0)))))
 
-  (defun render-window ()
-    (begin-drawing)
-    (set-background-color 'black)
-    (begin-mode-3d *camera*)
-    (apply-system 'render-objects)
-    (end-mode-3d)
-    (set-text (format nil "Position: ~A, Direction: ~A" (pos *camera*) (rotation *player*)) 200 600 20 'yellow)
-    (set-text (format nil "Active Systems: ~A" *current-systems*) 200 625 20 'yellow)
-    (set-text (format nil "Yaw: ~A" (yaw *camera*)) 200 650 20 'yellow)
-    (draw-fps 10 10)
-    (end-drawing))
+(defun render-window ()
+  (begin-drawing)
+  (set-background-color 'black)
+  (begin-mode-3d *camera*)
+  (apply-system 'render-objects)
+  (end-mode-3d)
+  (set-text (format nil "Position: ~A, Direction: ~A" (pos *camera*) (rotation *player*)) 200 600 20 'yellow)
+  (set-text (format nil "Active Systems: ~A" *current-systems*) 200 625 20 'yellow)
+  (set-text (format nil "Yaw: ~A" (yaw *camera*)) 200 650 20 'yellow)
+  (draw-fps 10 10)
+  (end-drawing))
 
 (defun main ()
   (init-window 1024 768 "Liminality")
@@ -197,21 +202,21 @@
            1.0)
         (new-value timer)
         (+ (orig-value timer)
-           (* (* time-diff (spd timer))
-              (- (new-value timer) (orig-value timer)))))))
+            (* (* time-diff (spd timer))
+               (- (new-value timer) (orig-value timer)))))))
 
-; TODO: callback should be created by make-timer to simplify creation
+                                        ; TODO: callback should be created by make-timer to simplify creation
 (defun make-timer (target target-place diff &key (spd 1.0) callback (target-subposition nil))
   (let* ((orig-value (if target-subposition
                          (nth target-subposition (slot-value target target-place))
                          (slot-value target target-place)))
          (entity-id (make-entity))
          (timer (make-instance 'timer :spd spd :target target :target-place target-place
-                               :orig-value orig-value
-                               :start-time (get-time)
-                               :target-subposition target-subposition
-                               :callback callback
-                               :new-value (+ diff orig-value))))
+                                      :orig-value orig-value
+                                      :start-time (get-time)
+                                      :target-subposition target-subposition
+                                      :callback callback
+                                      :new-value (+ diff orig-value))))
     (update-component 'timer entity-id timer)))
 
 
@@ -219,12 +224,12 @@
   (let ((event (make-entity)))
     (update-component 'event event
                       (make-instance 'event :description description
-                                     :callback callback))))
+                                            :callback callback))))
 
-; TODO: Timers need to be able to also accept non-slot-values
+                                        ; TODO: Timers need to be able to also accept non-slot-values
 (defun update-timers (timer-id)
   (let* ((timer (get-entity-in-component 'timer timer-id))
-        (adjusted-value (lerp timer)))
+         (adjusted-value (lerp timer)))
     (if (target-subposition timer)
         (setf (nth (target-subposition timer)
                    (slot-value (target timer) (target-place timer)))
@@ -247,14 +252,13 @@
 (enable-system 'update-timers)
 (enable-system 'grid-movement)
 
-(define-component 'event)
-(defclass event ()
-  ((description :accessor description :initarg :description)
-   (callback :accessor callback :initarg :callback)))
+(define-component event
+    ((description :accessor description :initarg :description)
+     (callback :accessor callback :initarg :callback)))
 
 (defun process-events (id)
   (let* ((event (get-entity-in-component 'event id))
-        (callback (callback event)))
+         (callback (callback event)))
     (if (null (args callback))
         (funcall (func callback))
         (apply (func callback) (args callback)))
@@ -264,8 +268,8 @@
 (enable-system 'process-events)
 
 
-(define-component 'game-tick)
-; TODO: Make system that events can push to call each game-tick
+(define-component 'game-tick ())
+                                        ; TODO: Make system that events can push to call each game-tick
 
 (defgeneric game-tick (obj) (:documentation "These are the calls that only update every time the player performs an action."))
 (defmethod game-tick ((encounter-timer encounter-timer))
