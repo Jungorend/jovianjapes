@@ -16,6 +16,9 @@
 (defvar *systems* (make-array 0 :adjustable t :fill-pointer 0))
 (defvar *current-systems* nil) ; For the systems applicable to the current scene
 
+(defclass entity ()
+  ((id :accessor id :initarg :id)))
+
 (defclass component ()
   ((name :accessor name :initarg :name :type 'symbol)
    (entities :accessor entities :initform (make-array 0 :adjustable t :fill-pointer 0))))
@@ -30,18 +33,30 @@
                                  (princ name s))
                        "-COMPONENT")))
 
+(defmacro %create-component-methods (component-name)
+  `(progn
+     (defgeneric ,component-name (entity))
+     (defmethod ,component-name ((entity entity))
+       (aref (entities (get-component ',component-name)) (id entity)))
+     (defun (setf ,component-name) (new-value entity)
+       (setf (aref (entities (get-component ',component-name)) (id entity))
+             new-value))))
+
+; TODO: Make hygenic
 (defmacro define-component (name slots)
-  (let ((classname (%get-component-name name))
-        (component `(make-instance 'component :name ',name)))
+  (let ((classname (%get-component-name name)))
     `(progn
        (defclass ,classname () ,slots)
-       (dotimes (_ (length *entities*))
-         (vector-push-extend nil (entities components)))
-       (vector-push-extend ,component *components*))))
+       (let ((component (make-instance 'component :name ',name)))
+         (%create-component-methods ,name)
+         (dotimes (_ (length *entities*))
+           (vector-push-extend nil (entities component)))
+         (vector-push-extend component *components*)))))
 
 (defun add-component (entity component &rest slots)
-  (setf (get-entity-in-component component entity)
-        (apply #'make-instance (%get-component-name component) slots)))
+  (let ((c (get-component component)))
+    (setf (aref (entities c) (id entity))
+          (apply #'make-instance (%get-component-name component) slots))))
 
 (defun remove-component (entity component)
   (setf (get-entity-in-component component entity)
@@ -80,10 +95,10 @@
   (if *free-entities*
       (progn
         (let ((id (pop *free-entities*)))
-          (setf (aref *entities* id) 0)
+          (setf (aref *entities* id) (make-instance 'entity :id id))
           id))
       (progn
-        (vector-push-extend 0 *entities*)
+        (vector-push-extend (make-instance 'entity :id (length *entities*)) *entities*)
         (let ((length (length *entities*)))
           (loop for component across *components*
                 do (vector-push-extend nil (entities component)))
