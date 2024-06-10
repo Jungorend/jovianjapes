@@ -7,8 +7,9 @@
 ;;;; (define-system) to declare a system
 ;;;; (update-component) to update details for a given component
 
-;; TODO: Right now entities are just a list of 0's
-;; NOTE: Each System takes exactly 1 argument, which is the id of the entity it's starting with
+;; TODO: DefineComponent should probably replace an existing component if they share names
+;; TODO: AddComponent will only create a class with the same name as the component. Update component for subclasses
+;; NOTE: Each System takes exactly 1 argument, which is the entity it's starting with
 
 (defvar *entities* (make-array 0 :adjustable t :fill-pointer 0))
 (defvar *free-entities* nil)
@@ -42,7 +43,7 @@
        (setf (aref (entities (get-component ',component-name)) (id entity))
              new-value))))
 
-; TODO: Make hygenic
+                                        ; TODO: Make hygenic
 (defmacro define-component (name slots)
   (let ((classname (%get-component-name name)))
     `(progn
@@ -96,13 +97,13 @@
       (progn
         (let ((id (pop *free-entities*)))
           (setf (aref *entities* id) (make-instance 'entity :id id))
-          id))
+          (aref *entities* id)))
       (progn
         (vector-push-extend (make-instance 'entity :id (length *entities*)) *entities*)
         (let ((length (length *entities*)))
           (loop for component across *components*
                 do (vector-push-extend nil (entities component)))
-          (- length 1)))))
+          (aref *entities* (1- length))))))
 
 (defun get-entity-in-component (component id)
   (aref (entities (get-component component)) id))
@@ -114,11 +115,11 @@
                                     (cons c results)
                                     results)))
                             required-components :initial-value '())))
-    (loop for i below (length *entities*)
+    (loop for entity across *entities*
           when (every (lambda (component)
-                        (aref (entities component) i))
+                        (aref (entities component) (id entity)))
                       components)
-            collect i)))
+            collect entity)))
 
 (defun apply-system (name)
   (let* ((sys (find-if (lambda (system)

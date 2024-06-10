@@ -11,17 +11,11 @@
   (z 0.0 :type float))
 
 (define-component pos
-    ((x :initform 0.0 :accessor x)
-     (y :initform 0.0 :accessor y)
-     (z :initform 0.0 :accessor z)))
+    ((x :initform 0.0 :accessor x :initarg :x)
+     (y :initform 0.0 :accessor y :initarg :y)
+     (z :initform 0.0 :accessor z :initarg :z)))
 
-(define-component movement
-    ((initial-position :accessor initial-position)
-     (speed :accessor spd)
-     (target-position :accessor target-position)
-     (state :accessor state)))
-
-(define-component 'renderable ())
+(define-component renderable ())
 
 (defclass renderable () nil
   (:documentation "A base renderable object"))
@@ -37,22 +31,22 @@
    (orientation :accessor orientation :initarg :orientation))
   (:documentation "A vertical wall that runs either 'north-south or 'east-west"))
 
-(defgeneric render (render-details id)
+(defgeneric render (render-details entity)
   (:documentation "Renders an object to the screen. Should be called within drawing methods"))
 
-(defmethod render ((render-details renderable/plane) id)
+(defmethod render ((render-details renderable/plane) entity)
   "Renders a 2d plane"
-  (let ((pos (get-entity-in-component 'pos id)))
-    (draw-plane (list (pos-x pos)
-                      (pos-y pos)
-                      (pos-z pos))
+  (let ((pos (pos entity)))
+    (draw-plane (list (x pos)
+                      (y pos)
+                      (z pos))
                 (list (height render-details)
                       (width render-details))
                 (color render-details))))
 
-(defmethod render ((render-details renderable/wall) id)
+(defmethod render ((render-details renderable/wall) entity)
   "Renders a wall via thin rectangle"
-  (let ((pos (get-entity-in-component 'pos id))
+  (let ((pos (pos entity))
         (x-length (if (eq 'north-south (orientation render-details))
                       0.1
                       (width render-details)))
@@ -60,25 +54,25 @@
         (z-length (if (eq 'north-south (orientation render-details))
                       (width render-details)
                       0.1)))
-    (draw-cube (list (pos-x pos)
-                     (pos-y pos)
-                     (pos-z pos))
+    (draw-cube (list (x pos)
+                     (y pos)
+                     (z pos))
                x-length y-length z-length
                (color render-details))))
 
 (defun make-plane (x y z height width color)
-  (let ((id (make-entity)))
-    (update-component 'pos id (make-pos :x x :y y :z z))
-    (update-component 'renderable id (make-instance 'renderable/plane :height height :width width :color color))))
+  (let ((entity (make-entity)))
+    (add-component entity 'pos :x x :y y :z z)
+    (update-component 'renderable (id entity) (make-instance 'renderable/plane :height height :width width :color color))))
 
 (defun make-wall (x y z height width orientation color)
   (let ((id (make-entity)))
     (update-component 'pos id (make-pos :x x :y y :z z))
     (update-component 'renderable id (make-instance 'renderable/wall :width width :height height :orientation orientation :color color))))
 
-(define-component 'viewable
+(define-component viewable
     ((target :accessor target :initform (make-vector3))
-     (up :accessor target :initform (make-vector3))
+     (up :accessor up :initform (make-vector3))
      (fovy :accessor fovy :initform 45.0)
      (projection :accessor projection :initform 0)))
 
@@ -194,7 +188,7 @@
    (callback :accessor callback :initarg :callback)
    (new-value :accessor new-value :initarg :new-value)))
 
-(define-component 'timer)
+(define-component timer ())
 
 (defun lerp (timer)
   (let ((time-diff (- (get-time) (start-time timer))))
@@ -202,8 +196,8 @@
            1.0)
         (new-value timer)
         (+ (orig-value timer)
-            (* (* time-diff (spd timer))
-               (- (new-value timer) (orig-value timer)))))))
+           (* (* time-diff (spd timer))
+              (- (new-value timer) (orig-value timer)))))))
 
                                         ; TODO: callback should be created by make-timer to simplify creation
 (defun make-timer (target target-place diff &key (spd 1.0) callback (target-subposition nil))
@@ -268,7 +262,7 @@
 (enable-system 'process-events)
 
 
-(define-component 'game-tick ())
+(define-component game-tick ())
                                         ; TODO: Make system that events can push to call each game-tick
 
 (defgeneric game-tick (obj) (:documentation "These are the calls that only update every time the player performs an action."))
