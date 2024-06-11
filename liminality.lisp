@@ -5,6 +5,23 @@
 ;;;; TODO: Notify when timer action is done? Potentially so actions can then happen
 ;;;; TODO: Event handler? Still thinking about how this should work. Maybe should be not in ECS.
 
+(defclass input-event ()
+  ((owner :accessor owner :initarg :owner)
+   (input-event :accessor input-event :initarg :input-event)))
+
+(defparameter *input-queue* (make-array 0 :element-type 'input-event :adjustable t :fill-pointer 0))
+
+(defun check-keyboard-input ()
+  "Handles player input by adding keyboard checks to the input queue."
+  (when (key-pressed? (gethash 'move-forward *key-config*))
+    (vector-push-extend (make-instance 'input-event :owner *player* :input-event 'move-forward) *input-queue*))
+  (when (key-pressed? (gethash 'move-backward *key-config*))
+    (vector-push-extend (make-instance 'input-event :owner *player* :input-event 'move-backward) *input-queue*))
+  (when (key-pressed? (gethash 'rotate-left *key-config*))
+    (vector-push-extend (make-instance 'input-event :owner *player* :input-event 'rotate-left) *input-queue*))
+  (when (key-pressed? (gethash 'rotate-right *key-config*))
+    (vector-push-extend (make-instance 'input-event :owner *player* :input-event 'rotate-right) *input-queue*)))
+
 (defstruct vector3
   (x 0.0 :type float)
   (y 0.0 :type float)
@@ -15,60 +32,15 @@
      (y :initform 0.0 :accessor y :initarg :y)
      (z :initform 0.0 :accessor z :initarg :z)))
 
-(define-component renderable ())
-
-(defclass renderable () nil
-  (:documentation "A base renderable object"))
-(defclass renderable/plane (renderable)
-  ((height :accessor height :initarg :height)
-   (width :accessor width :initarg :width)
-   (color :accessor color :initarg :color))
-  (:documentation "A 2d plane along the xz axis"))
-(defclass renderable/wall (renderable)
-  ((color :accessor color :initarg :color)
-   (width :accessor width :initarg :width)
-   (height :accessor height :initarg :height)
-   (orientation :accessor orientation :initarg :orientation))
-  (:documentation "A vertical wall that runs either 'north-south or 'east-west"))
-
-(defgeneric render (render-details entity)
-  (:documentation "Renders an object to the screen. Should be called within drawing methods"))
-
-(defmethod render ((render-details renderable/plane) entity)
-  "Renders a 2d plane"
-  (let ((pos (pos entity)))
-    (draw-plane (list (x pos)
-                      (y pos)
-                      (z pos))
-                (list (height render-details)
-                      (width render-details))
-                (color render-details))))
-
-(defmethod render ((render-details renderable/wall) entity)
-  "Renders a wall via thin rectangle"
-  (let ((pos (pos entity))
-        (x-length (if (eq 'north-south (orientation render-details))
-                      0.1
-                      (width render-details)))
-        (y-length (height render-details))
-        (z-length (if (eq 'north-south (orientation render-details))
-                      (width render-details)
-                      0.1)))
-    (draw-cube (list (x pos)
-                     (y pos)
-                     (z pos))
-               x-length y-length z-length
-               (color render-details))))
-
 (defun make-plane (x y z height width color)
   (let ((entity (make-entity)))
     (add-component entity 'pos :x x :y y :z z)
     (update-component 'renderable (id entity) (make-instance 'renderable/plane :height height :width width :color color))))
 
 (defun make-wall (x y z height width orientation color)
-  (let ((id (make-entity)))
-    (update-component 'pos id (make-pos :x x :y y :z z))
-    (update-component 'renderable id (make-instance 'renderable/wall :width width :height height :orientation orientation :color color))))
+  (let ((entity (make-entity)))
+    (add-component entity 'pos :x x :y :z z)
+    (update-component 'renderable (id entity) (make-instance 'renderable/wall :width width :height height :orientation orientation :color color))))
 
 (define-component viewable
     ((target :accessor target :initform (make-vector3))
@@ -76,31 +48,88 @@
      (fovy :accessor fovy :initform 45.0)
      (projection :accessor projection :initform 0)))
 
-(defclass player ()
-  ((x :accessor x :initform 0)
-   (y :accessor y :initform 0)
-   (state :accessor state :initform 'stationary)
-   (rotation :accessor rotation :initform 'north)))
+(define-component grid-pos
+    ((x :accessor x :initform 0)
+     (y :accessor y :initform 0)
+     (rotation :accessor rotation :initform 'north)))
+
+(define-component translation
+    ((target-x :accessor target-x :initarg :target-x)
+     (target-y :accessor target-y :initarg :target-y)
+     (target-z :accessor target-z :initarg :target-z)
+     (state :accessor state :initform 'idle)
+     (spd :accessor spd :initarg :spd)))
+
+(define-component orientation
+    ((yaw :accessor yaw :initform (/ pi 2))))
+
+(define-component rotation
+    ((state :accessor state :initform 'idle)
+     (spd :accessor spd :initarg :spd)
+     (target :accessor target :initarg :target)))
 
 (defun make-camera (&key (x 0.0) (y 0.0) (z 0.0))
-  (let ((id (make-entity)))
-    (update-component 'pos id (make-pos :x x :y y :z z))
-    (update-component 'viewable id (make-viewable))))
+  (let ((entity (make-entity)))
+    (add-component entity pos :x x :y y :z z)
+    (add-component entity viewable)))
 
-(defparameter *sensitivity-y* 0.005)
-(defparameter *sensitivity-x* 0.005)
 (defparameter *camera* (make-instance 'camera-3d))
-(defparameter *player* (make-instance 'player))
+(defparameter *player* (make-entity))
+(add-component *player* 'grid-pos)
+(add-component *player* 'pos)
+(add-component *player* 'translation)
+(add-component *player* 'orientation)
+(add-component *player* 'rotation)
+
+(defun can-move? (entity)
+  (and
+   (eq 'idle (state (translation entity)))
+   (eq 'idle (state (rotation entity)))))
 
 (defun grid-movement ()
-  (when (or (key-pressed? (key-code 'key-a))
-            (key-pressed? (key-code 'key-w))
-            (key-pressed? (key-code 'key-s))
-            (key-pressed? (key-code 'key-d)))
-    (disable-system 'grid-movement))
+  (loop while (> (length *input-queue*) 0)
+        for event = (vector-pop *input-queue*) do
+          (when (can-move? (owner event))
+            (case (input-event event)
+              (move-forward
+               (let ((translation (translation (owner event)))
+                     (pos (pos (owner event))))
+                 (setf (state translation) 'moving
+                       (spd translation) 4.0
+                       (target-z translation) (z pos))
+                 (case (rotation (owner event))
+                   (east (setf (target-x translation) (+ (x pos) *cell-size*)
+                               (target-y translation) (y pos)))
+                   (west (setf (target-x translation) (- (x pos) *cell-size*)
+                               (target-y translation) (y pos)))
+                   (north (setf (target-x translation) (x pos)
+                                (target-y translation) (- (y pos) *cell-size*)))
+                   (otherwise (setf (target-x translation) (x pos)
+                                    (target-y translation) (+ (y pos) *cell-size*))))))
+              (move-backward
+               (let ((translation (translation (owner event)))
+                     (pos (pos (owner event))))
+                 (setf (state translation) 'moving
+                       (spd translation) 4.0
+                       (target-z translation) (z pos))
+                 (case (rotation (owner event))
+                   (east (setf (target-x translation) (- (x pos) *cell-size*)
+                               (target-y translation) (y pos)))
+                   (west (setf (target-x translation) (+ (x pos) *cell-size*)
+                               (target-y translation) (y pos)))
+                   (north (setf (target-x translation) (x pos)
+                                (target-y translation) (+ (y pos) *cell-size*)))
+                   (otherwise (setf (target-x translation) (x pos)
+                                    (target-y translation) (- (y pos) *cell-size*))))))
+              (rotate-left
+               nil)
+              (rotate-right
+               nil)))))
+
+(defun grid-movement ()
   (when (key-pressed? (key-code 'key-a))
-    (setf (rotation *player*)
-          (case (rotation *player*)
+    (setf (rotation (grid-pos *player*))
+          (case (rotation (grid-pos *player*))
             (north 'east)
             (east 'south)
             (south 'west)
@@ -108,50 +137,14 @@
     (make-timer *camera* 'yaw (- (/ pi 2)) :spd 4
                                            :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))))
   (when (key-pressed? (key-code 'key-d))
-    (setf (rotation *player*)
-          (case (rotation *player*)
+    (setf (rotation (grid-pos *player*))
+          (case (rotation (grid-pos *player*))
             (north 'west)
             (west 'south)
             (south 'east)
             (otherwise 'north)))
     (make-timer *camera* 'yaw (/ pi 2) :spd 4
-                                       :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))))
-  (when (key-pressed? (key-code 'key-w))
-    (case (rotation *player*)
-      (east (make-timer *camera* 'pos *cell-size*
-                        :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
-                        :spd 4.0
-                        :target-subposition 2))
-      (south (make-timer *camera* 'pos *cell-size*
-                         :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
-                         :spd 4.0
-                         :target-subposition 0))
-      (west (make-timer *camera* 'pos (- *cell-size*)
-                        :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
-                        :spd 4.0
-                        :target-subposition 2))
-      (otherwise (make-timer *camera* 'pos (- *cell-size*)
-                             :spd 4.0
-                             :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
-                             :target-subposition 0))))
-  (when (key-pressed? (key-code 'key-s))
-    (case (rotation *player*)
-      (east (make-timer *camera* 'pos (- *cell-size*)
-                        :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
-                        :spd 4.0
-                        :target-subposition 2))
-      (south (make-timer *camera* 'pos (- *cell-size*)
-                         :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
-                         :spd 4.0
-                         :target-subposition 0))
-      (west (make-timer *camera* 'pos *cell-size*
-                        :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
-                        :spd 4.0
-                        :target-subposition 2))
-      (otherwise (make-timer *camera* 'pos *cell-size*
-                             :spd 4.0
-                             :callback (make-instance 'callback :func #'enable-system :args '(grid-movement))
-                             :target-subposition 0)))))
+                                       :callback (make-instance 'callback :func #'enable-system :args '(grid-movement)))))
 
 (defun render-window ()
   (begin-drawing)
@@ -235,13 +228,8 @@
         (make-event "Timer Completed" (callback timer)))
       (remove-entity timer-id))))
 
-(defun render-objects (id)
-  "Generic Render system. Returns the renderable component to render."
-  (render (get-entity-in-component 'renderable id) id))
-
 (define-system 'update-timers 'timer)
-(define-system 'render-objects 'renderable)
-(define-system 'grid-movement)
+(define-system 'grid-movement 'translation 'rotation 'pos)
 
 (enable-system 'update-timers)
 (enable-system 'grid-movement)

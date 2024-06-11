@@ -39,6 +39,7 @@
              new-value))))
 
                                         ; TODO: Make hygenic
+                                        ; Add optional docstrings
 (defmacro define-component (name slots)
   `(progn
      (defclass ,name () ,slots)
@@ -114,6 +115,12 @@
                         (aref (entities component) (id entity)))
                       components)
             collect entity)))
+
+(defun get-entity-components (entity)
+  (let ((id (id entity)))
+    (loop for component across *components*
+          when (aref (entities component) id)
+            collect (name component))))
 
 (defun apply-system (name)
   (let* ((sys (find-if (lambda (system)

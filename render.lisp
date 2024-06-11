@@ -2,29 +2,28 @@
 ;;;;
 ;;;; This handles all the code on how to render things to the screen.
 
-(in-project :liminality)
+(in-package :liminality)
 
 (define-component renderable ())
 
 (defclass renderable () nil
   (:documentation "A base renderable object"))
 
+(defgeneric render (render-details entity)
+  (:documentation "Renders an object to the screen. Should be called within drawing methods"))
+
+(defun render-objects (entity)
+  "Generic Render system. Returns the renderable component to render."
+  (render (get-entity-in-component 'renderable entity) entity))
+
+(define-system 'render-objects 'renderable)
+
+
 (defclass renderable/plane (renderable)
   ((height :accessor height :initarg :height)
    (width :accessor width :initarg :width)
    (color :accessor color :initarg :color))
   (:documentation "A 2d plane along the xz axis"))
-
-(defclass renderable/wall (renderable)
-  ((color :accessor color :initarg :color)
-   (width :accessor width :initarg :width)
-   (height :accessor height :initarg :height)
-   (orientation :accessor orientation :initarg :orientation))
-  (:documentation "A vertical wall that runs either 'north-south or 'east-west"))
-
-
-(defgeneric render (render-details entity)
-  (:documentation "Renders an object to the screen. Should be called within drawing methods"))
 
 (defmethod render ((render-details renderable/plane) entity)
   "Renders a 2d plane"
@@ -35,6 +34,14 @@
                 (list (height render-details)
                       (width render-details))
                 (color render-details))))
+
+
+(defclass renderable/wall (renderable)
+  ((color :accessor color :initarg :color)
+   (width :accessor width :initarg :width)
+   (height :accessor height :initarg :height)
+   (orientation :accessor orientation :initarg :orientation))
+  (:documentation "A vertical wall that runs either 'north-south or 'east-west"))
 
 (defmethod render ((render-details renderable/wall) entity)
   "Renders a wall via thin rectangle"
@@ -51,9 +58,3 @@
                      (z pos))
                x-length y-length z-length
                (color render-details))))
-
-(defun render-objects (entity)
-  "Generic Render system. Returns the renderable component to render."
-  (render (get-entity-in-component 'renderable entity) entity))
-
-(define-system 'render-objects 'renderable)

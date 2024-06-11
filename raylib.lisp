@@ -260,14 +260,6 @@
             (fli:foreign-slot-value cam 'projection) (projection camera))
       (%begin-mode-3d cam))))
 
-(defmacro build-hash-table (table (&key (test 'eql)) &rest values)
-  (let ((entry (gensym)))
-    `(progn
-       (setf ,table (make-hash-table :test ',test))
-       (dolist (,entry ',values)
-         (setf (gethash (first ,entry) ,table)
-               (second ,entry))))))
-
 (build-hash-table +colors+ ()
                   (lightgray (200 200 200 255))
                   (gray (130 130 130 255))
