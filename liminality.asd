@@ -12,4 +12,5 @@
                  (:file "config")
                  (:file "debug-ui")
                  (:file "leveleditor")
+                 (:file "render")
                  (:file "liminality")))

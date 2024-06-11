@@ -29,11 +29,6 @@
    (f :accessor f :initarg :f :type 'function)
    (components :accessor components :initarg :components)))
 
-(defun %get-component-name (name)
-  (intern (concatenate 'string (with-output-to-string (s)
-                                 (princ name s))
-                       "-COMPONENT")))
-
 (defmacro %create-component-methods (component-name)
   `(progn
      (defgeneric ,component-name (entity))
@@ -45,19 +40,18 @@
 
                                         ; TODO: Make hygenic
 (defmacro define-component (name slots)
-  (let ((classname (%get-component-name name)))
-    `(progn
-       (defclass ,classname () ,slots)
-       (let ((component (make-instance 'component :name ',name)))
-         (%create-component-methods ,name)
-         (dotimes (_ (length *entities*))
-           (vector-push-extend nil (entities component)))
-         (vector-push-extend component *components*)))))
+  `(progn
+     (defclass ,name () ,slots)
+     (let ((component (make-instance 'component :name ',name)))
+       (%create-component-methods ,name)
+       (dotimes (_ (length *entities*))
+         (vector-push-extend nil (entities component)))
+       (vector-push-extend component *components*))))
 
 (defun add-component (entity component &rest slots)
   (let ((c (get-component component)))
     (setf (aref (entities c) (id entity))
-          (apply #'make-instance (%get-component-name component) slots))))
+          (apply #'make-instance component slots))))
 
 (defun remove-component (entity component)
   (setf (get-entity-in-component component entity)
